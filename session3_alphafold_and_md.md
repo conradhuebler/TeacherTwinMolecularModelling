@@ -77,19 +77,17 @@ AlphaFold Result (Static)
 
 ### ✅ Quick Check 1: Complementarity
 
-[[?]]
-| What does AlphaFold reveal that MD cannot?
-| - [[X]] The most likely native 3D fold from sequence alone
-| - [[ ]] How atoms move over time
-| - [[ ]] Protein dynamics at room temperature
-| - [[ ]] Binding affinities
+What does AlphaFold reveal that MD cannot?
+- [x] The most likely native 3D fold from sequence alone
+- [ ] How atoms move over time
+- [ ] Protein dynamics at room temperature
+- [ ] Binding affinities
 
-[[?]]
-| What does MD reveal that AlphaFold cannot?
-| - [[ ]] The native fold of unknown sequences
-| - [[X]] Atomic motion, flexibility, and ensemble properties
-| - [[ ]] Confidence in the prediction
-| - [[ ]] Sequence homology information
+What does MD reveal that AlphaFold cannot?
+- [ ] The native fold of unknown sequences
+- [x] Atomic motion, flexibility, and ensemble properties
+- [ ] Confidence in the prediction
+- [ ] Sequence homology information
 
 ---
 
@@ -121,19 +119,17 @@ AlphaFold is trained on known structures, but:
 
 ### ✅ Quick Check 2: Stability
 
-[[?]]
-| If RMSD stays below 1 Å during a 500 ps MD, this suggests:
-| - [[X]] The AlphaFold structure is stable under the force field
-| - [[ ]] The force field is incorrect
-| - [[ ]] The structure is too rigid
-| - [[ ]] Nothing — RMSD is irrelevant
+If RMSD stays below 1 Å during a 500 ps MD, this suggests:
+- [x] The AlphaFold structure is stable under the force field
+- [ ] The force field is incorrect
+- [ ] The structure is too rigid
+- [ ] Nothing — RMSD is irrelevant
 
-[[?]]
-| A monotonically increasing RMSD over time indicates:
-| - [[ ]] The simulation is working correctly
-| - [[X]] The structure is unfolding or large rearrangements occur
-| - [[ ]] Temperature is too low
-| - [[ ]] Normal protein breathing
+A monotonically increasing RMSD over time indicates:
+- [ ] The simulation is working correctly
+- [x] The structure is unfolding or large rearrangements occur
+- [ ] Temperature is too low
+- [ ] Normal protein breathing
 
 ---
 
@@ -198,19 +194,17 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 
 ### ✅ Quick Check 3: Analysis Methods
 
-[[?]]
-| What does RMSF (Root-Mean-Square Fluctuation) measure?
-| - [[ ]] Average change between two structures
-| - [[X]] How much each individual residue moves during MD
-| - [[ ]] The total energy of the system
-| - [[ ]] Temperature stability
+What does RMSF (Root-Mean-Square Fluctuation) measure?
+- [ ] Average change between two structures
+- [x] How much each individual residue moves during MD
+- [ ] The total energy of the system
+- [ ] Temperature stability
 
-[[?]]
-| If a region has consistently high RMSF, it probably is:
-| - [[ ]] Incorrectly folded
-| - [[X]] Flexible, possibly functionally relevant (hinge, loop)
-| - [[ ]] Unfolding
-| - [[ ]] A simulation error
+If a region has consistently high RMSF, it probably is:
+- [ ] Incorrectly folded
+- [x] Flexible, possibly functionally relevant (hinge, loop)
+- [ ] Unfolding
+- [ ] A simulation error
 
 ---
 
@@ -266,12 +260,11 @@ colabfold_search <input.fasta> <output_dir>
 
 ### ✅ Quick Check 4: AlphaFold
 
-[[?]]
-| A region with pLDDT < 50 in AlphaFold prediction suggests:
-| - [[X]] Uncertain prediction, possibly flexible or unstructured
-| - [[ ]] The region is definitely incorrect
-| - [[ ]] The entire protein is wrong
-| - [[ ]] The region is very important
+A region with pLDDT < 50 in AlphaFold prediction suggests:
+- [x] Uncertain prediction, possibly flexible or unstructured
+- [ ] The region is definitely incorrect
+- [ ] The entire protein is wrong
+- [ ] The region is very important
 
 ---
 
@@ -452,19 +445,17 @@ display session3_analysis.png
 
 ### ✅ Quick Check 5: Result Interpretation
 
-[[?]]
-| You observe: RMSD increases linearly from 0 to 5 Å over 500 ps. This means:
-| - [[ ]] The simulation failed
-| - [[X]] The structure is unfolding or rearranging significantly
-| - [[ ]] The thermostat is too weak
-| - [[ ]] Everything is normal
+You observe: RMSD increases linearly from 0 to 5 Å over 500 ps. This means:
+- [ ] The simulation failed
+- [x] The structure is unfolding or rearranging significantly
+- [ ] The thermostat is too weak
+- [ ] Everything is normal
 
-[[?]]
-| Loops in the protein usually have:
-| - [[X]] High RMSF (flexible)
-| - [[ ]] Low RMSF (rigid)
-| - [[ ]] Zero RMSF (frozen)
-| - [[ ]] Unpredictable RMSF
+Loops in the protein usually have:
+- [x] High RMSF (flexible)
+- [ ] Low RMSF (rigid)
+- [ ] Zero RMSF (frozen)
+- [ ] Unpredictable RMSF
 
 ---
 
@@ -547,12 +538,11 @@ Your analysis gives you **numbers**. Now extract **biology**:
 
 ### ✅ Quick Check 6: Biological Interpretation
 
-[[?]]
-| A region has high pLDDT (AlphaFold confident) AND high RMSF (flexible in MD):
-| - [[ ]] One of the analyses must be wrong
-| - [[X]] The region might be functionally important and dynamically active
-| - [[ ]] The protein is misfolded
-| - [[ ]] This never happens
+A region has high pLDDT (AlphaFold confident) AND high RMSF (flexible in MD):
+- [ ] One of the analyses must be wrong
+- [x] The region might be functionally important and dynamically active
+- [ ] The protein is misfolded
+- [ ] This never happens
 
 ---
 
@@ -677,12 +667,11 @@ Your task is to present your findings in a **10-15 minute talk**.
 
 ### ✅ Quick Check 7: Presentation
 
-[[?]]
-| Your presentation should emphasize:
-| - [[X]] How AlphaFold and MD answer different questions and complement each other
-| - [[ ]] Which method is superior
-| - [[ ]] The technical details of each simulation
-| - [[ ]] Only the final conclusions, no data
+Your presentation should emphasize:
+- [x] How AlphaFold and MD answer different questions and complement each other
+- [ ] Which method is superior
+- [ ] The technical details of each simulation
+- [ ] Only the final conclusions, no data
 
 ---
 
@@ -800,12 +789,11 @@ gmx dssp -f prod.xtc -s prod.tpr -o ss.xvg
 
 ### ✅ Quick Check 8: Advanced Analysis
 
-[[?]]
-| Cluster analysis on a trajectory might reveal:
-| - [[X]] Whether the protein samples one conformation or multiple states
-| - [[ ]] If the simulation has bugs
-| - [[ ]] Which atoms are most important
-| - [[ ]] The force field accuracy
+Cluster analysis on a trajectory might reveal:
+- [x] Whether the protein samples one conformation or multiple states
+- [ ] If the simulation has bugs
+- [ ] Which atoms are most important
+- [ ] The force field accuracy
 
 ---
 
@@ -863,33 +851,29 @@ This cycle — prediction → simulation → experiment — is **modern structur
 
 ### ✅ Final Quiz: Integration
 
-[[?]]
-| The primary value of combining AlphaFold and MD is:
-| - [[X]] Validation: Structure + Dynamics → Robust understanding
-| - [[ ]] Finding which method is "best"
-| - [[ ]] Faster computation
-| - [[ ]] Better visualization
+The primary value of combining AlphaFold and MD is:
+- [x] Validation: Structure + Dynamics → Robust understanding
+- [ ] Finding which method is "best"
+- [ ] Faster computation
+- [ ] Better visualization
 
-[[?]]
-| If MD shows large RMSD from AF structure, it could mean:
-| - [[X]] Structure unstable, or AF mispredicted, or force field artifact
-| - [[ ]] MD definitely failed
-| - [[ ]] AF is always wrong for this protein
-| - [[ ]] Nothing concerning
+If MD shows large RMSD from AF structure, it could mean:
+- [x] Structure unstable, or AF mispredicted, or force field artifact
+- [ ] MD definitely failed
+- [ ] AF is always wrong for this protein
+- [ ] Nothing concerning
 
-[[?]]
-| Per-residue flexibility (RMSF) is most directly useful for:
-| - [[X]] Identifying flexible regions that might be functionally important
-| - [[ ]] Calculating protein size
-| - [[ ]] Determining sequence
-| - [[ ]] Nothing; it's just a number
+Per-residue flexibility (RMSF) is most directly useful for:
+- [x] Identifying flexible regions that might be functionally important
+- [ ] Calculating protein size
+- [ ] Determining sequence
+- [ ] Nothing; it's just a number
 
-[[?]]
-| A region with low AlphaFold confidence AND high MD RMSF:
-| - [[X]] Warrants investigation as potentially functionally relevant
-| - [[ ]] Is certainly misfolded
-| - [[ ]] Should be ignored
-| - [[ ]] Means the protein is unstable
+A region with low AlphaFold confidence AND high MD RMSF:
+- [x] Warrants investigation as potentially functionally relevant
+- [ ] Is certainly misfolded
+- [ ] Should be ignored
+- [ ] Means the protein is unstable
 
 ---
 

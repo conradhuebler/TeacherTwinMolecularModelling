@@ -66,12 +66,11 @@ By the end of Session 2B, you will:
 
 ### ✅ Quick Check 1: Gromacs Use Cases
 
-[[?]]
-| Which task is Gromacs best suited for?
-| - [[ ]] Teaching MD to beginners
-| - [[X]] Running 100 ns simulations of proteins on a cluster
-| - [[ ]] Quick energy minimization tests
-| - [[ ]] Simple molecules in vacuum
+Which task is Gromacs best suited for?
+- [ ] Teaching MD to beginners
+- [x] Running 100 ns simulations of proteins on a cluster
+- [ ] Quick energy minimization tests
+- [ ] Simple molecules in vacuum
 
 ---
 
@@ -108,19 +107,17 @@ Gromacs works with specific file types. Understanding them is **critical**.
 
 ### ✅ Quick Check 2: File Formats
 
-[[?]]
-| Which file contains the force field parameters?
-| - [[ ]] .pdb
-| - [[ ]] .gro
-| - [[X]] .top / .itp
-| - [[ ]] .xtc
+Which file contains the force field parameters?
+- [ ] .pdb
+- [ ] .gro
+- [x] .top / .itp
+- [ ] .xtc
 
-[[?]]
-| What does .tpr stand for?
-| - [[X]] Topology, Positions, and Run input
-| - [[ ]] Trajectory print result
-| - [[ ]] Total potential representation
-| - [[ ]] Time-point recording
+What does .tpr stand for?
+- [x] Topology, Positions, and Run input
+- [ ] Trajectory print result
+- [ ] Total potential representation
+- [ ] Time-point recording
 
 ---
 
@@ -182,12 +179,11 @@ Each step generates input for the next step. **Very systematic.**
 
 ### ✅ Quick Check 3: Workflow Order
 
-[[?]]
-| The correct order of Lemkul workflow is:
-| - [[X]] Minimize → NVT equil → NPT equil → Production
-| - [[ ]] NVT → Minimize → NPT → Production
-| - [[ ]] Production → Minimize → Equilibration
-| - [[ ]] Minimize → Production directly
+The correct order of Lemkul workflow is:
+- [x] Minimize → NVT equil → NPT equil → Production
+- [ ] NVT → Minimize → NPT → Production
+- [ ] Production → Minimize → Equilibration
+- [ ] Minimize → Production directly
 
 ---
 
@@ -322,19 +318,17 @@ compressibility         = 4.5e-5
 
 ### ✅ Quick Check 4: MDP Parameters
 
-[[?]]
-| What does `dt = 0.002` mean?
-| - [[ ]] 0.002 seconds per step
-| - [[X]] 0.002 picoseconds per step (2 femtoseconds)
-| - [[ ]] 0.002 nanometers
-| - [[ ]] Not important
+What does `dt = 0.002` mean?
+- [ ] 0.002 seconds per step
+- [x] 0.002 picoseconds per step (2 femtoseconds)
+- [ ] 0.002 nanometers
+- [ ] Not important
 
-[[?]]
-| In NVT ensemble, which should be "no"?
-| - [[X]] pcoupl (pressure coupling)
-| - [[ ]] tcoupl (temperature coupling)
-| - [[ ]] nstenergy (output frequency)
-| - [[ ]] integrator
+In NVT ensemble, which should be "no"?
+- [x] pcoupl (pressure coupling)
+- [ ] tcoupl (temperature coupling)
+- [ ] nstenergy (output frequency)
+- [ ] integrator
 
 ---
 
@@ -455,12 +449,11 @@ gmx mdrun -v -deffnm prod
 
 ### ✅ Quick Check 5: Workflow Commands
 
-[[?]]
-| The command `gmx grompp` does what?
-| - [[ ]] Runs MD simulation
-| - [[X]] Preprocesses inputs (.mdp, .top, .gro) and creates binary .tpr file
-| - [[ ]] Analyzes trajectory results
-| - [[ ]] Adds water to the system
+The command `gmx grompp` does what?
+- [ ] Runs MD simulation
+- [x] Preprocesses inputs (.mdp, .top, .gro) and creates binary .tpr file
+- [ ] Analyzes trajectory results
+- [ ] Adds water to the system
 
 ---
 
@@ -518,12 +511,11 @@ session3_inputs/
 
 ### ✅ Quick Check 6: Your Workflow
 
-[[?]]
-| In this course, what do you do with Gromacs?
-| - [[X]] Prepare inputs and create .tpr files
-| - [[ ]] Run full production simulations
-| - [[ ]] Only analyze results
-| - [[ ]] Nothing (only Curcuma)
+In this course, what do you do with Gromacs?
+- [x] Prepare inputs and create .tpr files
+- [ ] Run full production simulations
+- [ ] Only analyze results
+- [ ] Nothing (only Curcuma)
 
 ---
 
@@ -579,12 +571,11 @@ session3_inputs/
 
 ### ✅ Quick Check 7: Parameters
 
-[[?]]
-| Which dt is most stable for protein MD?
-| - [[ ]] 0.1 ps
-| - [[X]] 0.002 ps (2 fs)
-| - [[ ]] 0.5 ps
-| - [[ ]] 0.0001 ps (overkill)
+Which dt is most stable for protein MD?
+- [ ] 0.1 ps
+- [x] 0.002 ps (2 fs)
+- [ ] 0.5 ps
+- [ ] 0.0001 ps (overkill)
 
 ---
 
@@ -735,12 +726,11 @@ rvdw                    = 1.0
 
 ### ✅ Quick Check 8: Course vs Lemkul
 
-[[?]]
-| This course is based on the Lemkul workflow but:
-| - [[X]] Uses shorter equilibration times for teaching
-| - [[ ]] Skips energy minimization entirely
-| - [[ ]] Uses Berendsen thermostat only
-| - [[ ]] Doesn't follow any published protocol
+This course is based on the Lemkul workflow but:
+- [x] Uses shorter equilibration times for teaching
+- [ ] Skips energy minimization entirely
+- [ ] Uses Berendsen thermostat only
+- [ ] Doesn't follow any published protocol
 
 ---
 
@@ -767,33 +757,29 @@ rvdw                    = 1.0
 
 ### ✅ Final Quiz: Session 2B
 
-[[?]]
-| What does .tpr file contain?
-| - [[X]] Binary combination of topology, coordinates, and all MD settings
-| - [[ ]] Just the protein coordinates
-| - [[ ]] Energy data from simulation
-| - [[ ]] Trajectory information
+What does .tpr file contain?
+- [x] Binary combination of topology, coordinates, and all MD settings
+- [ ] Just the protein coordinates
+- [ ] Energy data from simulation
+- [ ] Trajectory information
 
-[[?]]
-| In the Lemkul workflow, minimization runs BEFORE:
-| - [[X]] NVT and NPT equilibration
-| - [[ ]] Adding the protein to water
-| - [[ ]] Creating the topology
-| - [[ ]] All the above
+In the Lemkul workflow, minimization runs BEFORE:
+- [x] NVT and NPT equilibration
+- [ ] Adding the protein to water
+- [ ] Creating the topology
+- [ ] All the above
 
-[[?]]
-| V-rescale thermostat is equivalent to:
-| - [[X]] CSVR (from Session 2A)
-| - [[ ]] Berendsen thermostat
-| - [[ ]] NVE (no thermostat)
-| - [[ ]] Langevin dynamics
+V-rescale thermostat is equivalent to:
+- [x] CSVR (from Session 2A)
+- [ ] Berendsen thermostat
+- [ ] NVE (no thermostat)
+- [ ] Langevin dynamics
 
-[[?]]
-| NPT ensemble means constant:
-| - [[X]] Number of particles, Pressure, and Temperature
-| - [[ ]] Number, Pressure, and Time
-| - [[ ]] Number, Volume, and Temperature
-| - [[ ]] Nothing is constant
+NPT ensemble means constant:
+- [x] Number of particles, Pressure, and Temperature
+- [ ] Number, Pressure, and Time
+- [ ] Number, Volume, and Temperature
+- [ ] Nothing is constant
 
 ---
 

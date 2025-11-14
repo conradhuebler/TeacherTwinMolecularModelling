@@ -43,6 +43,7 @@ By the end of this pre-course, you will:
 The **terminal** (also called *console* or *shell*) is a text-based interface to your computer. Instead of clicking buttons, you type commands. 
 
 **Why use it?**
+
 - ✨ Powerful automation (run 100 commands at once)
 - ✨ Precise control (no ambiguity, always exact)
 - ✨ Scientific computing standard (Gromacs, Avogadro, your tool all use it)
@@ -72,17 +73,26 @@ user@hostname:~$
 user@hostname:~/some/path$ command -option argument
 │     │         │          │       │       │
 └─────┴─────────┴──────────┤       │       │
-   User, computer, where    │       │       │
-   you are right now         │       │       │
-                    ┌────────┘       │       │
-                    │  The command   │       │
-                    │  (what to do)   │       │
-                    └────────────────┘       │
-                       Flags/options ────┐   │
-                       (modify behavior)  │   │
-                       Arguments ─────────┴───┘
-                       (input data)
+   User, computer, where   │       │       │
+   you are right now       │       │       │
+                  ┌────────┘       │       │
+                  │  The command   │       │
+                  │  (what to do)  │       │
+                  └────────────────┘       │
+                    Flags/options  ────┐   │
+                    (modify behavior)  │   │
+                    Arguments ─────────┴───┘
+                    (input data)
 ```
+
+### ✅ Quick Check 1: Terminal Anatomy
+
+In the command `ls -la /home`, what is "-la"?
+
+- [[X]] Flags/options that modify the command
+- [[ ]] The file to list
+- [[ ]] The output
+- [[ ]] A path
 
 ---
 
@@ -101,6 +111,7 @@ pwd
 ```
 
 Expected output:
+
 ```
 /home/user
 ```
@@ -128,6 +139,22 @@ Your computer's files are organized like this:
 
 When you open the terminal, you **start in** `/home/user` (aka `~` = "home shortcut")
 
+### ✅ Quick Check 2: Filesystem Structure
+
+What does the `~` symbol represent?
+
+- [[ ]] The root of the filesystem
+- [[X]] Your home directory
+- [[ ]] The parent folder
+- [[ ]] A temporary folder
+
+An absolute path always starts with:
+
+- [[ ]] `~`
+- [[X]] `/`
+- [[ ]] `..`
+- [[ ]] A letter (like `C:` on Windows)
+
 ---
 
 ### Command: `ls` — List Files
@@ -143,6 +170,7 @@ ls
 ```
 
 Expected output (depends on your system):
+
 ```
 Desktop    Documents    Downloads    Pictures    Videos
 ```
@@ -157,6 +185,7 @@ ls -la
 - `-a` = **All** (including hidden files, those start with `.`)
 
 Example output:
+
 ```
 drwxr-xr-x 10 user user 4096 Oct 27 10:30 .
 drwxr-xr-x  3 root root 4096 Oct 20 15:00 ..
@@ -166,6 +195,7 @@ drwxr-xr-x  2 user user 4096 Sep 15 12:00 Documents
 ```
 
 **Read it:**
+
 - `d` = directory (folder), `-` = regular file
 - `rwx` = read, write, execute permissions
 - `user user` = owner, group
@@ -198,6 +228,7 @@ pwd
 ```
 
 Now you should see:
+
 ```
 /home/user/Documents
 ```
@@ -207,11 +238,13 @@ Now you should see:
 ### Path Types: Absolute vs. Relative
 
 **Absolute path:** Starts with `/`, always works from anywhere
+
 ```bash
 cd /home/user/Documents    # Works from everywhere
 ```
 
 **Relative path:** Doesn't start with `/`, relative to where you are NOW
+
 ```bash
 cd Documents               # Only works if Documents is in current folder
 ```
@@ -241,6 +274,7 @@ pwd                   # Should be in Documents again
 ### Challenge 1️⃣: Navigate to `/usr/bin` and Back
 
 **Your task:**
+
 1. Navigate to `/usr/bin` (absolute path)
 2. List the files
 3. Go back home
@@ -270,6 +304,7 @@ ls
 ```
 
 Output:
+
 ```
 my_project
 ```
@@ -294,6 +329,7 @@ ls
 ```
 
 Output:
+
 ```
 README.txt
 ```
@@ -312,6 +348,7 @@ ls
 ```
 
 Output:
+
 ```
 README.txt    README_backup.txt
 ```
@@ -344,6 +381,7 @@ ls data/
 ```
 
 Output:
+
 ```
 README.bak
 ```
@@ -382,6 +420,7 @@ What command removes a file permanently?
 ### Challenge 2️⃣: Build a Project Structure
 
 **Your task:**
+
 1. Create a folder `protein_sim` in your home
 2. Inside, create subfolders: `inputs`, `outputs`, `analysis`
 3. Create a file `log.txt` in the main folder
@@ -440,6 +479,7 @@ You now see:
 **Try it:**
 
 1. Type some text:
+
 ```
 This is my first simulation project!
 ```
@@ -460,6 +500,7 @@ cat log.txt
 ```
 
 Output:
+
 ```
 This is my first simulation project!
 ```
@@ -480,6 +521,7 @@ less log.txt
 A **pipe** `|` sends output of one command as input to the next.
 
 **Syntax:**
+
 ```bash
 command1 | command2
 ```
@@ -535,6 +577,7 @@ rm energy_*.edr       # Remove all energy files
 ### Challenge 3️⃣: Create and Organize Files
 
 **Your task:**
+
 1. Go to `protein_sim/inputs`
 2. Create 3 files: `mol1.xyz`, `mol2.xyz`, `opt.inp`
 3. List only `.xyz` files using wildcard
@@ -558,6 +601,7 @@ ls | wc -l      # Should be 3
 **`grep`** searches for text patterns in files.
 
 **Syntax:**
+
 ```bash
 grep "pattern" filename
 ```
@@ -565,6 +609,7 @@ grep "pattern" filename
 **Example:**
 
 Create a file with content:
+
 ```bash
 cat > simulation.log << EOF
 Step 1000, Energy = -245.5 kcal/mol
@@ -580,6 +625,7 @@ grep "Energy" simulation.log
 ```
 
 Output:
+
 ```
 Step 1000, Energy = -245.5 kcal/mol
 Step 2000, Energy = -250.3 kcal/mol
@@ -617,6 +663,7 @@ grep "Potential" energy.log | tail -1
 Find files by name, size, date, etc.
 
 **Basic syntax:**
+
 ```bash
 find /path -name "pattern"
 ```
@@ -695,6 +742,7 @@ find . -name "*.pdb"
 ```
 
 Expected output:
+
 ```
 ./proteins/protein_1A.pdb
 ./proteins/protein_2B.pdb
@@ -715,6 +763,7 @@ nano SIMULATION_LOG.txt
 ```
 
 Type:
+
 ```
 My First MD Campaign
 =====================
@@ -796,6 +845,22 @@ rm one_specific_file  # Be specific
 cd Doc[TAB]           # Auto-completes to "Documents"
 ls *.py[TAB][TAB]     # Shows all matching files
 ```
+
+### ✅ Quick Check 11: Shortcuts and Safety
+
+How do you stop a running command?
+
+- [[ ]] Press Enter
+- [[X]] Press Ctrl+C
+- [[ ]] Type "stop"
+- [[ ]] Wait forever
+
+What does the `Tab` key do in the terminal?
+
+- [[ ]] Creates indentation
+- [[X]] Auto-completes file/folder names
+- [[ ]] Switches between open windows
+- [[ ]] Does nothing
 
 ---
 
@@ -888,12 +953,12 @@ You've completed the **Linux Basics Pre-Course**.
 
 ### What You Learned:
 
-✅ Navigate the filesystem confidently  
-✅ Create, copy, move, delete files  
-✅ Edit text with `nano`  
-✅ Use pipes and wildcards  
-✅ Search and find files  
-✅ Understand paths and structure  
+- ✅ Navigate the filesystem confidently  
+- ✅ Create, copy, move, delete files  
+- ✅ Edit text with `nano`  
+- ✅ Use pipes and wildcards  
+- ✅ Search and find files  
+- ✅ Understand paths and structure  
 
 ### What's Next:
 
@@ -903,35 +968,97 @@ You've completed the **Linux Basics Pre-Course**.
 
 ---
 
-## Final Quiz: Master the Terminal
+## 🏆 Final Mastery Quiz
 
-[[1]]
-| What does `cd ..` do?
-| - [[ ]] Go to the home folder
-| - [[X]] Go up one level to the parent folder
-| - [[ ]] Clear the directory
-| - [[ ]] Create a new folder
+Time to test everything you've learned!
 
-[[2]]
-| Which command creates a folder?
-| - [[X]] `mkdir`
-| - [[ ]] `mkfile`
-| - [[ ]] `newdir`
-| - [[ ]] `create`
+What does `pwd` stand for?
 
-[[3]]
-| What does the `*` wildcard match?
-| - [[ ]] Exactly one character
-| - [[X]] Any number of characters (0 or more)
-| - [[ ]] Only file extensions
-| - [[ ]] Hidden files
+- [[ ]] Print Working Data
+- [[X]] Print Working Directory
+- [[ ]] Package Working Directory
+- [[ ]] Print Web Directory
 
-[[4]]
-| How do you stop a running command?
-| - [[ ]] Press Enter
-| - [[X]] Press Ctrl+C
-| - [[ ]] Type "stop"
-| - [[ ]] Wait forever
+---
+
+How would you create a folder `analysis` inside an existing folder `project`?
+
+- [[ ]] `mkdir project analysis`
+- [[X]] `mkdir project/analysis` or `cd project` then `mkdir analysis`
+- [[ ]] `create project/analysis`
+- [[ ]] `touch project/analysis`
+
+---
+
+What does `ls -la` show that `ls` doesn't?
+
+- [[X]] Hidden files, permissions, owner, size, and modification date
+- [[ ]] Only folder names
+- [[ ]] Deleted files
+- [[ ]] File contents
+
+---
+
+If you're in `/home/user` and type `cd ./Desktop`, where do you go?
+
+- [[ ]] To the root directory
+- [[X]] To `/home/user/Desktop`
+- [[ ]] To `./Desktop` at the root level
+- [[ ]] The command is invalid
+
+---
+
+How many files match the pattern `data_?.csv`?
+
+- [[ ]] Any number
+- [[X]] Only files like data_1.csv, data_A.csv, data_X.csv (exactly one character between underscore and dot)
+- [[ ]] Files like data_1.csv, data_12.csv, data_ABC.csv
+- [[ ]] Only files named exactly `data_?.csv`
+
+---
+
+What does `grep -i "energy" log.txt` do?
+
+- [[ ]] Counts lines in the file
+- [[X]] Searches for "energy" in log.txt, ignoring uppercase/lowercase
+- [[ ]] Deletes lines containing "energy"
+- [[ ]] Copies lines with "energy" to a new file
+
+---
+
+The command `cp -r folder1 folder2` does what?
+
+- [[ ]] Copies only files from folder1 to folder2
+- [[X]] Copies the entire folder1 and all its contents as folder2
+- [[ ]] Moves folder1 to folder2
+- [[ ]] Creates a link instead of copying
+
+---
+
+What's the safest way to delete a file you're unsure about?
+
+- [[ ]] `rm filename`
+- [[X]] `rm -i filename` (asks for confirmation)
+- [[ ]] `mv filename /trash` (no such directory)
+- [[ ]] There's no safe way in the terminal
+
+---
+
+How would you list only `.pdb` files and count them?
+
+- [[ ]] `ls *.pdb count`
+- [[X]] `ls *.pdb | wc -l`
+- [[ ]] `count *.pdb`
+- [[ ]] `ls -count *.pdb`
+
+---
+
+What does `find . -name "*.xyz"` do?
+
+- [[ ]] Lists all .xyz files only in the current folder
+- [[X]] Finds all .xyz files in the current folder and all subfolders
+- [[ ]] Creates new .xyz files
+- [[ ]] Searches the entire filesystem for .xyz files
 
 ---
 

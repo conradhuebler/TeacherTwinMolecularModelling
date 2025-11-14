@@ -74,19 +74,17 @@ In **NVE**, energy is conserved but temperature fluctuates (unrealistic for most
 
 ### ✅ Quick Check 1: Ensembles
 
-[[?]]
-| Which ensemble is most realistic for a protein in aqueous solution?
-| - [[ ]] NVE (isolated system)
-| - [[X]] NVT (constant temperature, like in a water bath)
-| - [[ ]] NPT (constant pressure)
-| - [[ ]] None of the above
+Which ensemble is most realistic for a protein in aqueous solution?
+- [ ] NVE (isolated system)
+- [x] NVT (constant temperature, like in a water bath)
+- [ ] NPT (constant pressure)
+- [ ] None of the above
 
-[[?]]
-| In NVE ensemble, what is conserved?
-| - [[ ]] Temperature
-| - [[X]] Total energy
-| - [[ ]] Volume
-| - [[ ]] Pressure
+In NVE ensemble, what is conserved?
+- [ ] Temperature
+- [x] Total energy
+- [ ] Volume
+- [ ] Pressure
 
 ---
 
@@ -124,12 +122,11 @@ $$T_{\text{new}} = T_{\text{current}} \left(1 + \frac{\Delta t}{\tau_T}\left(\fr
 
 ### ✅ Quick Check 2: Berendsen Thermostat
 
-[[?]]
-| Berendsen thermostat rescales velocities. What does this accomplish?
-| - [[X]] Adjusts kinetic energy to match target temperature
-| - [[ ]] Changes potential energy
-| - [[ ]] Moves atoms to new positions
-| - [[ ]] Adds random forces
+Berendsen thermostat rescales velocities. What does this accomplish?
+- [x] Adjusts kinetic energy to match target temperature
+- [ ] Changes potential energy
+- [ ] Moves atoms to new positions
+- [ ] Adds random forces
 
 ---
 
@@ -164,12 +161,11 @@ $$T_{\text{new}} = T_{\text{current}} \left(1 + \frac{\Delta t}{\tau_T}\left(\fr
 
 ### ✅ Quick Check 3: When to Use Which
 
-[[?]]
-| You're running a 10 ns production MD. Best thermostat?
-| - [[ ]] Berendsen (faster equilibration)
-| - [[X]] CSVR (proper NVT ensemble for correct statistics)
-| - [[ ]] Both simultaneously
-| - [[ ]] NVE (no thermostat needed)
+You're running a 10 ns production MD. Best thermostat?
+- [ ] Berendsen (faster equilibration)
+- [x] CSVR (proper NVT ensemble for correct statistics)
+- [ ] Both simultaneously
+- [ ] NVE (no thermostat needed)
 
 ---
 
@@ -224,12 +220,11 @@ Time(ps)  e_tot  <e_tot>  e_kin  <e_kin>  e_pot  <e_pot>  T(K)  <T(K)>  ...
 
 ### ✅ Quick Check 4: MD Output
 
-[[?]]
-| What does the `<e_tot>` column represent?
-| - [[ ]] Total energy at a single snapshot
-| - [[X]] Running average of total energy (time-averaged)
-| - [[ ]] The final energy after MD
-| - [[ ]] The initial energy before MD
+What does the `<e_tot>` column represent?
+- [ ] Total energy at a single snapshot
+- [x] Running average of total energy (time-averaged)
+- [ ] The final energy after MD
+- [ ] The initial energy before MD
 
 ---
 
@@ -410,19 +405,17 @@ display md_comparison.png
 
 ### ✅ Quick Check 5: Interpreting MD Results
 
-[[?]]
-| If total energy drifts downward throughout the MD, this suggests:
-| - [[ ]] The thermostat is working perfectly
-| - [[X]] There might be numerical instabilities or poor parameters
-| - [[ ]] It's normal and expected
-| - [[ ]] The force field is wrong
+If total energy drifts downward throughout the MD, this suggests:
+- [ ] The thermostat is working perfectly
+- [x] There might be numerical instabilities or poor parameters
+- [ ] It's normal and expected
+- [ ] The force field is wrong
 
-[[?]]
-| Temperature fluctuations in CSVR should be:
-| - [[ ]] Zero (perfectly constant)
-| - [[X]] Non-zero but realistic (Boltzmann distribution)
-| - [[ ]] Larger than Berendsen
-| - [[ ]] Unpredictable
+Temperature fluctuations in CSVR should be:
+- [ ] Zero (perfectly constant)
+- [x] Non-zero but realistic (Boltzmann distribution)
+- [ ] Larger than Berendsen
+- [ ] Unpredictable
 
 ---
 
@@ -485,12 +478,11 @@ curcuma -rmsd glucose_start.xyz glucose_frame_last.xyz
 
 ### ✅ Quick Check 6: RMSD Interpretation
 
-[[?]]
-| High RMSD at the end of MD means:
-| - [[ ]] The simulation failed
-| - [[X]] The structure moved/changed significantly
-| - [[ ]] Better thermostat control
-| - [[ ]] Lower temperature
+High RMSD at the end of MD means:
+- [ ] The simulation failed
+- [x] The structure moved/changed significantly
+- [ ] Better thermostat control
+- [ ] Lower temperature
 
 ---
 
@@ -564,12 +556,11 @@ mv peptide_wrklq.trj.xyz pep_wrklq_csvr.trj.xyz
 
 ### ✅ Quick Check 7: Peptide Dynamics
 
-[[?]]
-| Why might AAAAA be more stable than WRKLQ?
-| - [[X]] Homogeneous sequences have fewer degrees of freedom
-| - [[ ]] CSVR doesn't work on diverse sequences
-| - [[ ]] Small peptides are always stable
-| - [[ ]] GFN-FF favors uniform structures
+Why might AAAAA be more stable than WRKLQ?
+- [x] Homogeneous sequences have fewer degrees of freedom
+- [ ] CSVR doesn't work on diverse sequences
+- [ ] Small peptides are always stable
+- [ ] GFN-FF favors uniform structures
 
 ---
 
@@ -687,12 +678,11 @@ plot 'energy_berendsen.txt' u 1:2 w l lw 2 title 'Berendsen', \
 
 ### ✅ Quick Check 8: Gnuplot Syntax
 
-[[?]]
-| What does `plot 'data.txt' u 1:2 w l` mean?
-| - [[ ]] Use only column 1 for plotting
-| - [[X]] Plot column 1 vs column 2 with lines
-| - [[ ]] Plot data with points
-| - [[ ]] Use logarithmic scale
+What does `plot 'data.txt' u 1:2 w l` mean?
+- [ ] Use only column 1 for plotting
+- [x] Plot column 1 vs column 2 with lines
+- [ ] Plot data with points
+- [ ] Use logarithmic scale
 
 ---
 
@@ -715,12 +705,11 @@ plot 'energy_berendsen.txt' u 1:2 w l lw 2 title 'Berendsen', \
 
 ### ✅ Quick Check 9: Session Summary
 
-[[?]]
-| After completing Session 2A, you understand:
-| - [[X]] How thermostats control temperature in MD simulations
-| - [[X]] The difference between Berendsen and CSVR
-| - [[X]] How to extract and plot MD data
-| - [[ ]] All of the above
+After completing Session 2A, you understand:
+- [x] How thermostats control temperature in MD simulations
+- [x] The difference between Berendsen and CSVR
+- [x] How to extract and plot MD data
+- [ ] All of the above
 
 ---
 
