@@ -232,7 +232,7 @@ This **drastically reduces** computational cost! Instead of solving electron + n
 <details>
 <summary>💡 Need a hint?</summary>
 
-Think about timescales: electrons move in femtoseconds, nuclei move in picoseconds or slower.
+Think about the masses: electrons are much ligher than nuclei. Which implication does this have?
 
 </details>
 
@@ -518,11 +518,13 @@ An optimization is converged when:
 **Why all three criteria matter:**
 
 Each criterion catches different problems:
+
 - **Energy change (dE):** Ensures energy is stable
 - **Atomic movement (RMSD):** Ensures atoms have stopped moving significantly
 - **Gradient norm:** Ensures forces are truly zero
 
 **Example:** A poorly converged optimization might have:
+
 - ✅ Low energy change
 - ❌ But atoms still moving (high RMSD)
 - ❌ And large forces remaining
@@ -600,18 +602,19 @@ Each term describes how atoms interact.
 **UFF** = Universal Force Field
 
 - **Type:** Classical force field
-- **Based on:** Experimental bond lengths, angles, empirical parameters
-- **Speed:** Fast
+- **Speed:** Fast -> curcuma has better threading/parallel support for UFF
 - **Accuracy:** Limited (use GFN-FF when possible)
 
 > ⚠️ **Note:** GFN-FF is the recommended default method. Use UFF only in these specific cases:
 
 **When to use UFF:**
 
-- Large molecules (> 1000 atoms) where GFN-FF is too slow
-- Initial rough geometry guesses for very large systems
-- Legacy workflows or specific force field requirements
+- In case GFN-FF is not available, for example if curcuma was compilied without GFN-FF support
+- Avogadro/obabel has UFF and MMFF94s support. 
 
+  - Use MMFF94s for organic molecules. It incldues dispersion and hydrogen bond corrections.
+  - Use UFF if MMFF94s reports, Force Field generation failed. Why could this happen?
+  
 **Limitations:**
 
 - No quantum effects
@@ -625,7 +628,7 @@ Each term describes how atoms interact.
 
 - **Type:** Hybrid quantum/classical
 - **Based on:** Quantum-derived parameters (xtb)
-- **Speed:** Faster than some QM, much faster than full QM
+- **Speed:** Faster than some QM, much faster than full QM, bad parallelisation
 - **Accuracy:** Better than UFF for nearly all systems (especially with heteroatoms, metals, and polar interactions)
 
 **When to use GFN-FF:**
@@ -636,7 +639,7 @@ Each term describes how atoms interact.
 
 **Advantages over UFF:**
 
-- Includes dispersion (van der Waals)
+- Includes hydrogen and halogend bonds
 - Better for polarized systems
 
 ---
@@ -649,9 +652,12 @@ Each term describes how atoms interact.
 | Speed | ⚡⚡⚡ | ⚡⚡ |
 | Accuracy | ⭐⭐ | ⭐⭐⭐ |
 | Quantum effects | ✗ | ✓ (partial) |
-| Dispersion | ✗ | ✓ |
+| Dispersion | ✓ | ✓ |
+| Hydrogen bond | ✗ | ✓ |
+| Halogen bond | ✗ | ✓ |
 | Good for heteroatoms | ✗ | ✓ |
 | Molecular size | Large OK | Medium best |
+| Benefits from multithreading | ✓ | ✗ |
 
 **→ GFN-FF should be your default choice for geometry optimization. Only use UFF when molecular size (>1000 atoms) makes GFN-FF computationally impractical.**
 
@@ -663,7 +669,6 @@ Each term describes how atoms interact.
 - [[ ]] GFN-FF (more accurate)
 - [[ ]] Both simultaneously
 - [[ ]] Neither works for proteins
-
 **Question 2:** A molecule contains many sulfur atoms. Which method is preferable?
 
 - [[ ]] UFF (classical methods handle S well)
@@ -716,8 +721,8 @@ Think about computational cost: UFF is 10-100× faster. But GFN-FF captures chem
 - ✅ Geometry optimization (GeoOpt)
 - ✅ Molecular dynamics (MD)
 - ✅ Conformation searching (ConfScan)
-- ✅ RMSD analysis and trajectory reordering
-- ✅ Multiple force fields (UFF, GFN-FF, GFN1, GFN2)
+- ✅ RMSD and trajectory analysis 
+- ✅ Multiple methods (UFF, GFN-FF, GFN1, GFN2)
 
 **Command structure:**
 
@@ -751,7 +756,7 @@ obabel -ismi input.smi -O output.xyz -h --gen3d
 - `-h` = add hydrogens
 - `--gen3d` = generate 3D coordinates
 
-**Example:** Glucose SMILES → 3D structure
+**Example:** Glucose SMILES → 3D structure. Use the correct SMILES you got from ChemSpider
 
 ```bash
 echo "C(C1C(C(C(C(O1)O)O)O)O)O" > glucose.smi
@@ -787,12 +792,6 @@ curcuma -opt glucose.xyz -method uff
 curcuma -opt glucose.xyz -method gfnff
 ```
 
-**Example 3: Optimize peptide with GFN-FF (faster)**
-
-```bash
-curcuma -opt peptide.xyz -method gfnff -threads 4
-```
-
 ---
 
 ### ✅ Quick Check 4: Curcuma Workflow
@@ -803,7 +802,6 @@ curcuma -opt peptide.xyz -method gfnff -threads 4
 - [[X]] The entire optimization trajectory (all intermediate steps)
 - [[ ]] The initial structure only
 - [[ ]] Energy values at each step
-
 **Question 2:** Which command correctly optimizes a molecule?
 
 - [[ ]] `curcuma glucose.xyz`
@@ -815,16 +813,20 @@ curcuma -opt peptide.xyz -method gfnff -threads 4
 **Understanding Curcuma Output Files:**
 
 **`.opt.xyz`** = Final optimized structure only (single frame, converged geometry)
+
 - Use for: visualizing final structure, calculating RMSD to other results, input for next calculation
 
 **`.trj.xyz`** = Complete trajectory (all 1-500 optimization steps as frames)
+
 - Use for: animation in Avogadro, diagnosing convergence problems, tracking atomic motion
 - Watch this to see if optimization went smoothly or had problems!
 
 **Command Syntax:**
+
 ```bash
 curcuma -opt input.xyz -method METHOD [options]
 ```
+
 - `-opt`: tells Curcuma to run geometry optimization
 - `-method`: choose UFF, gfnff, gfn1, gfn2
 - `-threads`: optional, number of CPU cores to use
@@ -842,7 +844,282 @@ Think about what you'd want to visualize: just the final answer, or the entire j
 
 ---
 
-## Part 4️⃣: Exercise 1 — Optimize a Monosaccharide
+## Part 4️⃣: 🔬 Visualization with Avogadro
+
+Before we optimize, let's **visualize** the XYZ structure you created. Molecular visualization is essential—you need to **see** your molecule before running simulations.
+
+### Why Visualization Matters
+
+Numbers alone don't tell the story:
+
+- Is the structure reasonable? (atoms not overlapping?)
+- Are the atoms positioned well? (no clashes?)
+- What does the optimization trajectory look like?
+- Which parts of the molecule move during optimization?
+
+**Visualization reveals problems immediately.**
+
+---
+
+### Getting Started with Avogadro
+
+**Installation** (if not already installed):
+
+```bash
+sudo zypper install avogadro
+# or: apt install avogadro (on Ubuntu/Debian)
+```
+
+or download it from:
+
+- https://avogadro.cc/ - version 1.2 stable
+- https://two.avogadro.cc/ - development version, but recommended.
+
+  - Windows
+  - macOS
+  - Linux: AppImage
+
+**Launch Avogadro with your structure:**
+
+```bash
+avogadro glucose.xyz &
+```
+
+- or using the AppImage
+
+```bash
+Avogadro2-x86_64.AppImage glucose.xyz &
+```
+
+The `&` runs it in the background, so your terminal is free.
+
+**Expected window:** 3D molecular structure with toolbar and atom list.
+
+---
+
+### Understanding the Avogadro Interface
+
+| Part | Purpose |
+|------|---------|
+| **Central viewport** | 3D molecular structure (your molecule) |
+| **Left panel** | Atom list (element, coordinates, properties) |
+| **Top toolbar** | Tools (select, rotate, zoom, measure, build) |
+| **Right panel** | Properties (energy, bonds, angles) |
+
+![Avogadro Interface Overview](screenshots/avogadro_view.png)
+
+**Navigation (mouse controls):**
+
+- **Left-click + drag:** Rotate structure
+- **Right-click + drag:** Zoom in/out
+- **Middle-click + drag:** Pan (move sideways)
+- **Scroll wheel:** Zoom
+
+![Ansicht ausrichten und navigieren](screenshots/avogadro_align_view.png)
+
+**Try it now:** Open `glucose.xyz` and practice rotating—feel the 3D structure!
+
+---
+
+### Display Modes: Seeing Different Views
+
+Avogadro shows your molecule in different visual styles. Each style reveals different information:
+
+**Ball-and-Stick** (default)
+- Shows atoms as balls, bonds as sticks
+- Best for: Understanding connectivity and atom types
+- Use when: Checking bond arrangement
+
+**Van der Waals (Space-filling)**
+- Shows atomic radii as spheres
+- Best for: Seeing steric clashes (overlapping atoms)
+- Use when: Checking if atoms collide
+
+**Wireframe**
+- Only shows bonds, atoms as small spheres
+- Best for: Complex molecules (less visual clutter)
+- Use when: Exploring large structures
+
+---
+
+### Working with Trajectories: See Optimization in Action
+
+This is where Avogadro shines. Instead of reading optimization steps from text, **watch the molecule optimize**.
+
+**Open a trajectory file:**
+
+```bash
+avogadro glucose.trj.xyz &
+```
+
+**You'll see:**
+
+- A timeline slider at the bottom
+- Current frame number (Step 1, Step 2, etc.)
+- The molecule displayed for that step
+
+**Trajectory controls:**
+
+- **Play button:** Animate all steps
+- **Slider:** Jump to any step
+- **Forward/backward arrows:** Step through one at a time
+
+![Movie modus](screenshots/avogadro_movie.png)
+
+![Check that the number of the last frame coincide with the total number of frames](screenshots/avogadro_max.png)
+
+![Play trajectory](screenshots/avogadro_play.png)
+
+
+**What to observe:**
+
+- Does the structure change smoothly (good) or jump around (bad)?
+- Which atoms move the most?
+- Does the geometry stabilize (converge)?
+
+---
+
+### Measuring Distances and Angles
+
+Sometimes you want **exact numbers**:
+
+**To measure a bond distance:**
+
+1. Click the "Measure" tool in toolbar
+2. Click two atoms
+3. Distance appears (in Ångströms)
+
+**To measure an angle:**
+
+1. Click three atoms in sequence
+2. Angle appears
+
+![Measurement](screenshots/avogadro_measure.png)
+
+This is useful to verify that optimization produced reasonable geometry.
+
+---
+
+### Exporting Images: Saving What You See
+
+Want to include your structure in a report or presentation?
+
+**To save a screenshot:**
+
+Menu → File → Export -> Graphics
+
+**Options:**
+
+- Format: PNG
+- More will be implemented in the future
+
+
+---
+
+### PyMOL as an Alternative
+
+**A quick note:** You can also use **PyMOL** to visualize XYZ files:
+```bash
+pymol glucose.xyz
+```
+
+PyMOL is more powerful but has a steeper learning curve. **For XYZ files and simple visualization, Avogadro is simpler and sufficient.**
+
+We'll use PyMOL later in Session 3 when working with PDB files and complex protein structures.
+
+---
+
+### ✅ Quick Check: Molecular Visualization
+
+**Question 1:** In Avogadro, which mouse control rotates the structure?
+
+- [[X]] Left-click + drag
+- [[ ]] Right-click + drag
+- [[ ]] Middle-click + drag
+- [[ ]] Scroll wheel only
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** Left-click is the primary rotation. This is standard in 3D visualization software (similar to Blender, Maya, etc.). You'll use this most often.
+- ❌ **Middle-click:** That zooms in/out (magnification).
+- ❌ **Right-click:** That pans (moves the view sideways).
+- ❌ **Scroll wheel:** That zooms, but doesn't rotate.
+
+**Hint:** "Left" = "Largest motion" — rotating is the main operation, so left-click controls it.
+
+**Practical tip:** Rotating with left-click is how you inspect your molecule from all angles. Always rotate to check for clashing atoms!
+
+********************
+
+**Question 2:** What does the "Van der Waals" display mode show?
+
+- [[ ]] Just the bonds, no atoms
+- [[X]] Atomic radii as spheres, showing steric space
+- [[ ]] Wireframe skeleton only
+- [[ ]] Energy levels as colors
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** Van der Waals (vdW) display shows atomic radii—how much space each atom actually occupies. If atoms are overlapping in vdW view, they're clashing, which is bad. This mode is essential for checking **steric clashes** (atoms too close to each other).
+- ❌ **Bonds only:** That's wireframe mode (less information about atom size).
+- ❌ **Wireframe skeleton:** Too minimal; doesn't show atomic size.
+- ❌ **Energy colors:** Energy visualization exists in some programs, but not the primary point of vdW display.
+
+**Why this matters:** Optimization should produce structures with NO atom clashes. vdW display immediately shows if something is wrong.
+
+**Practical tip:** After optimization, always check Van der Waals view—if atoms overlap, something went wrong with the force field or optimization parameters!
+
+********************
+
+**Question 3:** What does the trajectory slider in Avogadro do?
+
+- [[ ]] Changes the molecule's color
+- [[ ]] Measures distances between atoms
+- [[X]] Jumps to any optimization step in the animation
+- [[ ]] Adjusts the zoom level
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** The slider at the bottom of the Avogadro window lets you jump to any frame in the trajectory. Slide left = early steps, slide right = final step. This lets you inspect any moment of the optimization without playing the full animation.
+- ❌ **Color:** Display modes and coloring are separate from the slider.
+- ❌ **Measure:** That's the Measure tool (separate from the slider).
+- ❌ **Zoom:** That's mouse control (scroll wheel or right-click drag).
+
+**Educational value:** Trajectory visualization teaches you what optimization DOES. You see atoms moving toward their lowest-energy positions. This makes the math and physics real!
+
+**Hint:** Use the slider to find the exact step where your molecule converges (stops moving). That's the point where optimization has achieved its goal.
+
+********************
+
+**Question 4:** After optimization, you see overlapping atoms in Van der Waals view. What does this indicate?
+
+- [[ ]] The molecule is now more stable
+- [[ ]] The optimization converged successfully
+- [[X]] Something went wrong—force field or starting geometry problem
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** Overlapping atoms (clashing) in vdW view is a **red flag**. Atoms repel each other—they should never overlap. Possible causes: (1) Wrong starting geometry (atoms too close from the start), (2) Incorrect force field selection, (3) Numerical error in optimization. You should **investigate and fix** the input structure before proceeding to MD simulation.
+- ❌ **More stable:** Clashing atoms mean high energy and instability, not stability.
+- ❌ **Converged successfully:** Convergence should give a stable, clash-free structure.
+
+**Troubleshooting guide:** If your optimized structure has clashes:
+1. Re-examine the starting geometry (is it reasonable?)
+2. Check if the molecule was created correctly from SMILES
+3. Try a different force field (switch UFF ↔ GFN-FF)
+4. Use Avogadro to manually adjust the structure if needed
+
+**Insight:** This is why visualization is essential—you catch problems early, before running expensive MD simulations!
+
+********************
+
+---
+
+## Part 5️⃣: Exercise 1 — Optimize a Monosaccharide
 
 ### Task: Optimize Glucose with Two Methods
 
@@ -897,6 +1174,209 @@ C        0.1234    0.5678    1.2345
 O       -0.9876    ...
 ...
 ```
+
+---
+
+## 📚 Crash Course: Understanding Molecular Formats
+
+Before we use the XYZ file for optimization, let's examine **what this file contains** and **what other formats** exist.
+
+### Why Different File Formats?
+
+Different programs require different types of information:
+
+- **XYZ:** Only atomic positions (coordinates) — minimal, but fast
+- **PDB:** Complete structural information + metadata — standard for proteins
+- **MOL2/SDF:** Coordinates + bonds + atom types — ideal for docking
+- **SMILES:** Text string instead of coordinates — compact, but 2D
+
+The "best" format depends on **what you want to do**.
+
+---
+
+### The XYZ Format in Detail
+
+The XYZ format is **structured as follows:**
+
+```
+21                           ← LINE 1: Number of atoms
+Glucose from ChemSpider      ← LINE 2: Comment (optional)
+C   0.1234  0.5678  1.2345   ← LINE 3+: Element  X  Y  Z
+C  -0.9876  1.2345  2.1098
+O   0.5432  0.9876  0.5678
+... (18 more atoms)
+```
+
+**Meaning of each line:**
+
+| Part | Meaning | Example |
+|------|---------|---------|
+| **Line 1** | Total number of atoms | `21` |
+| **Line 2** | Comment (information about molecule) | "Glucose from ChemSpider" or empty |
+| **Lines 3 onwards** | For each atom: Symbol + X, Y, Z coordinates | `C  0.1234  0.5678  1.2345` |
+
+**Coordinate Units:** All values are in **Ångströms (Å = 10⁻¹⁰ m)**
+
+- 1 Å = 0.1 nm
+- Typical bond lengths: 1.0 – 1.5 Å
+
+**Important:**
+
+- The origin (0, 0, 0) is **arbitrary** — the molecule can be positioned anywhere in space
+- **No bond information!** — XYZ stores only "where are the atoms", not "how are they connected"
+- This makes XYZ simple, but limited
+
+---
+
+### Common Errors in XYZ Files
+
+| Error | Problem | Consequence |
+|-------|---------|-------------|
+| Wrong atom count in line 1 | E.g., "20" instead of "21" atoms | Programs read file incorrectly, crash possible |
+| Extra blank lines | Blank lines between atoms | Parser error, file not read |
+| Tabs instead of spaces | Wrong separation of values | Coordinates misinterpreted |
+| Too many decimal places | E.g., `0.123456789012345` | Numerical errors in calculations |
+
+---
+
+### Comparison: XYZ vs. Other Formats
+
+| Format | Coordinates | Bonds | Size | Best For |
+|--------|-----------|-------|------|----------|
+| **XYZ** | ✓ Yes | ✗ No | Small | Fast optimization |
+| **PDB** | ✓ Yes | ✓ Implicit | Large | Proteins, databases |
+| **MOL2** | ✓ Yes | ✓ Yes | Medium | Ligand docking, molecular graphics |
+| **SDF** | ✓ Yes | ✓ Yes | Medium | Cheminformatics, databases |
+| **SMILES** | ✗ No | ✓ Yes | Very small | Fast processing, 2D representation |
+
+**Explanation:**
+
+- **PDB:** Bonds only "implicit" — reconstructible from atomic distances
+- **MOL2/SDF:** Explicit bond table — explicitly states "C1 binds to O2"
+- **SMILES:** String format, e.g., `C(C1C(...)O1)O` — all bonds encoded in text, **no 3D information!**
+
+---
+
+### Practical Exercise: Edit XYZ File Manually
+
+Let's understand **how to edit XYZ files**.
+
+**Task:** Shift the entire glucose molecule by 5 Ångströms in the X direction.
+
+**What we do:** Add 5.0 to each X-coordinate (first value after the element symbol).
+
+**Example:**
+
+```bash
+# Original line:
+C   0.1234  0.5678  1.2345
+
+# After +5 Å in X direction:
+C   5.1234  0.5678  1.2345  ← only X changes!
+```
+
+**Perform the exercise:**
+
+```bash
+# Open the XYZ file in an editor
+nano glucose.xyz
+
+# Manually change: for each C, O, H atom, add 5.0 to the first number
+# Save (Ctrl+O, Enter, Ctrl+X)
+
+# Verify that the number of atoms stays the same (Line 1)
+head -1 glucose.xyz  # should still be "21"
+```
+
+**Why this exercise?**
+
+- You see that XYZ is just numbers — easy to edit
+- You understand the structure through practical modification
+- You recognize why formats with **bond information** are sometimes better (with MOL2/SDF you'd also need to update the bond table!)
+
+---
+
+### ✅ Quick Check: Molecular Formats
+
+**Question 1:** In an XYZ file, what does the **first line** represent?
+
+- [[X]] The number of atoms in the molecule
+- [[ ]] The name of the molecule
+- [[ ]] The total energy
+- [[ ]] The temperature of the simulation
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** Line 1 is ALWAYS the atom count. Example: `21` for glucose (6C + 6O + 9H = 21 atoms). This number tells the parser how many lines with coordinates follow.
+- ❌ **Name of the molecule:** That's in line 2 (comment line).
+- ❌ **Total energy:** Only in output files from optimization programs, not in input XYZ.
+- ❌ **Temperature:** XYZ stores only static coordinates, no thermodynamic data.
+
+**Hint:** If the first line is wrong (e.g., "20" instead of "21"), the program will misread the file!
+
+********************
+
+**Question 2:** Why does the XYZ format **not store bond information**?
+
+- [[X]] Because XYZ should be minimal — only atom positions, everything else is redundant
+- [[ ]] Because bonds can change during simulations
+- [[ ]] Because modern programs can calculate bonds from distances
+- [[ ]] Because XYZ is too old and not further developed
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** XYZ is a **minimal format** — philosophy: "store only what's absolutely necessary." For geometry optimization, you need only atomic positions. A program can infer bonds itself from atomic distances (if C and O are 1.5 Å apart, they're probably bonded). Other programs (like MOL2) store bonds explicitly, but are larger and more complex.
+- ❌ **Bonds change:** True (e.g., in reactions), but NOT the reason for XYZ design.
+- ❌ **Programs calculate bonds:** Sometimes yes, but not the reason for format design.
+- ❌ **XYZ is too old:** XYZ has been standard for decades, is still widely used BECAUSE it's simple!
+
+**Practical insight:** That's why you need MOL2 for ligand docking (where bonds are fixed), but XYZ suffices for geometry optimization (where bonds are stable).
+
+********************
+
+**Question 3:** In what units are the coordinates in an XYZ file?
+
+- [[ ]] Nanometers (nm)
+- [[X]] Ångströms (Å)
+- [[ ]] Picometers (pm)
+- [[ ]] Bohr (atomic units)
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** Ångström (Å = 10⁻¹⁰ m = 0.1 nm) is the **standard** in structural chemistry. A typical C-C bond is ~1.54 Å long. If you see `C  0.0  0.0  1.5`, that's 1.5 Ångströms distance.
+- ❌ **Nanometer:** That's 10× larger. "Glucose in nanometers" would show `C  0.00054  ...` — impractical.
+- ❌ **Picometer:** That's 1/100 Ångström — would give huge numbers.
+- ❌ **Bohr:** Atomic units, sometimes in QM programs, but not in XYZ.
+
+**Memory aid:** "Å" = "Ångström" — **A with a ring on top**. When you see this symbol, think of the standard molecular format!
+
+**Hint:** When importing coordinates from another program, ALWAYS check the units — a factor-of-10 error is fatal!
+
+********************
+
+**Question 4:** Which format is SMALLEST (in bytes) when you need to store structure + bonds?
+
+- [[ ]] XYZ (because minimal)
+- [[ ]] PDB (standard format)
+- [[X]] SMILES (because text instead of numbers)
+- [[ ]] MOL2 (because optimized)
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** SMILES stores just a text string: `C(C1C(C(C(C(O1)O)O)O)O)O)O` for glucose. That's one line, approx 30 characters. XYZ needs 21 lines × approx 30 characters = 600+ bytes. PDB needs even more. SMILES is extremely compact **but contains no 3D coordinates** — only connectivity!
+- ❌ **XYZ:** Minimal for coordinates, but has no bond table.
+- ❌ **PDB:** Large standard format with lots of metadata.
+- ❌ **MOL2:** Compact, but larger than SMILES.
+
+**Trade-off:** SMILES is small, but you lose 3D information. XYZ is larger, but you have structure.
+
+**Insight:** That's why databases (like ChemSpider, PubChem) use SMILES for indexing — fast to store and search. But for simulations, you need XYZ or PDB with real 3D coordinates!
+
+********************
 
 ---
 
@@ -1000,7 +1480,54 @@ RMSD = square ROOT of the Mean of the Squares of the Deviations. It's an average
 
 ---
 
-### Step 5: Visualize the Trajectory
+### Step 5: GFN2 Single-Point Energies (Reference Validation)
+
+Now calculate **single-point energies** using GFN2 (a higher-level semiempirical method) on the optimized geometries:
+
+**Why GFN2 single-points?**
+
+- GFN2 is more accurate than UFF or GFN-FF (includes more electronic effects)
+- Single-point calculation = energy evaluation **without optimization**
+- Provides a consistent "reference energy" to compare all structures
+- Much faster than full GFN2 optimization
+
+**Calculate GFN2 energy for UFF-optimized structure:**
+
+```bash
+curcuma -sp glucose_uff.opt.xyz -method gfn2
+```
+
+**Calculate GFN2 energy for GFN-FF-optimized structure:**
+
+```bash
+curcuma -sp glucose.opt.xyz -method gfn2
+```
+
+**Expected output:**
+
+```
+Single-point energy (GFN2): -XX.XXXX Eh
+```
+
+💾 **Record both energies:**
+- GFN2@UFF: [value] (GFN2 energy on UFF geometry)
+- GFN2@GFN-FF: [value] (GFN2 energy on GFN-FF geometry)
+
+**Interpretation:**
+
+- **Energy difference:** If GFN2//GFN-FF < GFN2//UFF, the GFN-FF geometry is lower in energy according to GFN2
+- **Key insight:** We're comparing the **same method** (GFN2) on **different geometries** (UFF vs. GFN-FF)
+- This is scientifically valid, unlike comparing UFF energy to GFN-FF energy directly!
+
+**What this tells us:**
+
+✅ **If energies are similar (< 1 kcal/mol):** Both methods found similar geometries (confirmed by RMSD)
+✅ **If GFN2//GFN-FF is lower:** GFN-FF found a better minimum (expected, since GFN-FF is more accurate)
+❌ **Don't compare:** UFF energy vs. GFN-FF energy (different references!)
+
+---
+
+### Step 6: Visualize the Trajectory
 
 **Open Avogadro:**
 
@@ -1072,12 +1599,13 @@ Think about what convergence means: atoms getting closer and closer to the minim
 
 ### Summary: Glucose Results
 
-| Property | UFF | GFN-FF |
-|----------|-----|--------|
-| **Final Energy** | [EXPECTED_ENERGY_GLUCOSE_UFF] | [EXPECTED_ENERGY_GLUCOSE_GFNFF] |
-| **Energy Difference** | [EXPECTED_DELTA_E_GLUCOSE] | |
-| **Optimization Steps** | [EXPECTED_STEPS_GLUCOSE_UFF] | [EXPECTED_STEPS_GLUCOSE_GFNFF] |
-| **RMSD to GFN-FF result** | [RMSD_GLUCOSE_UFF_vs_GFNFF] Å | — |
+| Property | UFF | GFN-FF | GFN2//UFF | GFN2//GFN-FF |
+|----------|-----|--------|-----------|--------------|
+| **Optimization Energy** | 0.531 Eh | -3.524 Eh | — | — |
+| **GFN2 Single-Point** | — | — | -3.512 Eh | -3.525 Eh |
+| **GFN2 Energy Difference** | — | — | 0.013 Eh | |
+| **Optimization Steps** | 24 | 117 | — | — |
+| **RMSD to GFN-FF result** | 0.147 Å | — | — | — |
 
 ### ✅ Quick Check 6: Interpreting Results
 
@@ -1125,7 +1653,7 @@ If two methods give different energies, do the structures look the same or diffe
 
 ---
 
-## Part 5️⃣: Exercise 2 — Disaccharide (Sucrose)
+## Part 6️⃣: Exercise 2 — Disaccharide (Sucrose)
 
 ### Task: Quick Comparison
 
@@ -1148,11 +1676,10 @@ mkdir -p session1_sucrose
 cd session1_sucrose
 
 # Sucrose SMILES (from ChemSpider)
-echo "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O" > sucrose.smi
+echo "insert_your_smiles_string_here" > sucrose.smi
 obabel -ismi sucrose.smi -O sucrose.xyz -h --gen3d
 ```
 
-This is the complete SMILES for sucrose.
 
 ---
 
@@ -1183,13 +1710,41 @@ curcuma -opt sucrose.xyz -method gfnff
 💾 **Final energy (GFN-FF):** Record your value here
 
 **Compare the two:**
+
 - Which method took more steps?
 - Which gave lower energy?
 - Use `curcuma -rmsd sucrose_uff.opt.xyz sucrose.opt.xyz` to compare geometries
 
 ---
 
-### Step 5: Analysis
+### Step 5: GFN2 Single-Point Energies (Reference Validation)
+
+Now calculate **single-point energies** using GFN2 on the optimized sucrose geometries:
+
+**Calculate GFN2 energy for UFF-optimized structure:**
+
+```bash
+curcuma -sp sucrose_uff.opt.xyz -method gfn2
+```
+
+**Calculate GFN2 energy for GFN-FF-optimized structure:**
+
+```bash
+curcuma -sp sucrose.opt.xyz -method gfn2
+```
+
+💾 **Record both energies:**
+
+- GFN2@UFF: -6.621 Eh (GFN2 energy on UFF geometry)
+- GFN2@GFN-FF: -6.747 Eh (GFN2 energy on GFN-FF geometry)
+
+**Interpretation:**
+
+This allows us to use the same method (GFN2) to compare energies on different geometries. This is scientifically valid, unlike comparing UFF and GFN-FF energies directly, which use different energy references.
+
+---
+
+### Step 6: Analysis
 
 **Questions to consider:**
 
@@ -1285,7 +1840,7 @@ Compare the molecular formulas and atom counts. Then think about degrees of free
 
 ---
 
-## Part 6️⃣: Exercise 3 — Peptides (Two Extremes)
+## Part 7️⃣: Exercise 3 — Peptides (Two Extremes)
 
 ### Why Compare Two Extreme Peptides?
 
@@ -1300,11 +1855,20 @@ Two very different amino acid sequences will show how **chemical diversity affec
 
 #### Peptide 1: AAAAA (Poly-Alanine)
 
-**Get SMILES from ChemSpider or use:**
+**Get SMILES from ChemSpider:**
 
-```
-[AAAAA_PEPTIDE_SMILES_PLACEHOLDER]
-```
+[[___   ___   ___   ___]]
+<script>
+  let input = `@input`.trim()
+
+  if (input == "CC(N)C(=O)NC(C)C(=O)NC(C)C(=O)NC(C)C(=O)NC(C)C(=O)O" ) {
+    send.lia("Thats the correct string", [], true)
+  } else {
+    send.lia("Not the correct SMILES String", [], false)
+  }
+</script>
+
+<!-- comment: CC(N)C(=O)NC(C)C(=O)NC(C)C(=O)NC(C)C(=O)NC(C)C(=O)O -->
 
 **Build structure:**
 
@@ -1312,7 +1876,7 @@ Two very different amino acid sequences will show how **chemical diversity affec
 mkdir -p session1_peptides
 cd session1_peptides
 
-echo "[AAAAA_PEPTIDE_SMILES_PLACEHOLDER]" > peptide_aaaaa.smi
+echo "your_smiles_string" > peptide_aaaaa.smi
 obabel -ismi peptide_aaaaa.smi -O peptide_aaaaa.xyz -h --gen3d
 ```
 
@@ -1322,9 +1886,9 @@ obabel -ismi peptide_aaaaa.smi -O peptide_aaaaa.xyz -h --gen3d
 curcuma -opt peptide_aaaaa.xyz -method gfnff
 ```
 
-💾 **Final energy:** `[EXPECTED_ENERGY_AAAAA_GFNFF]` kcal/mol
-💾 **Atoms:** Count from structure = `[N_ATOMS_AAAAA]`
-💾 **Energy per atom:** `[E_PER_ATOM_AAAAA]` kcal/mol
+- 💾 **Final energy:** `[EXPECTED_ENERGY_AAAAA_GFNFF]` kcal/mol
+- 💾 **Atoms:** Count from structure = `[N_ATOMS_AAAAA]`
+- 💾 **Energy per atom:** `[E_PER_ATOM_AAAAA]` kcal/mol
 
 ---
 
@@ -1333,7 +1897,7 @@ curcuma -opt peptide_aaaaa.xyz -method gfnff
 **Build structure:**
 
 ```bash
-echo "[WRKLQ_PEPTIDE_SMILES_PLACEHOLDER]" > peptide_wrklq.smi
+echo "N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@H](CCCNC(=N)N)C(=O)N[C@H](CCCCN)C(=O)N[C@H](CC(C)C)C(=O)N[C@@H](CCC(=O)N)C(=O)O" > peptide_wrklq.smi
 obabel -ismi peptide_wrklq.smi -O peptide_wrklq.xyz -h --gen3d
 ```
 
@@ -1343,9 +1907,38 @@ obabel -ismi peptide_wrklq.smi -O peptide_wrklq.xyz -h --gen3d
 curcuma -opt peptide_wrklq.xyz -method gfnff
 ```
 
-💾 **Final energy:** `[EXPECTED_ENERGY_WRKLQ_GFNFF]` kcal/mol
-💾 **Atoms:** `[N_ATOMS_WRKLQ]`
-💾 **Energy per atom:** `[E_PER_ATOM_WRKLQ]` kcal/mol
+- 💾 **Final energy:** `[EXPECTED_ENERGY_WRKLQ_GFNFF]` kcal/mol
+- 💾 **Atoms:** `[N_ATOMS_WRKLQ]`
+- 💾 **Energy per atom:** `[E_PER_ATOM_WRKLQ]` kcal/mol
+
+---
+
+### GFN2 Single-Point Energies (Reference Validation)
+
+Calculate **single-point energies** using GFN2 on both optimized peptide structures:
+
+**For AAAAA peptide:**
+
+```bash
+curcuma -sp peptide_aaaaa.opt.xyz -method gfn2
+```
+
+💾 **GFN2 energy (AAAAA):** -7.556 Eh
+
+**For WRKLQ peptide:**
+
+```bash
+curcuma -sp peptide_wrklq.opt.xyz -method gfn2
+```
+
+💾 **GFN2 energy (WRKLQ):** -18.945 Eh
+
+**Interpretation:**
+
+Using GFN2 single-points allows us to compare the two peptides on the same energetic basis. Calculate **GFN2 energy per atom** for both peptides to fairly compare their stability:
+
+- **GFN2 energy per atom (AAAAA):** [GFN2_ENERGY_AAAAA] / [N_ATOMS_AAAAA] = [GFN2_E_PER_ATOM_AAAAA] Eh/atom
+- **GFN2 energy per atom (WRKLQ):** [GFN2_ENERGY_WRKLQ] / [N_ATOMS_WRKLQ] = [GFN2_E_PER_ATOM_WRKLQ] Eh/atom
 
 ---
 
@@ -1354,10 +1947,11 @@ curcuma -opt peptide_wrklq.xyz -method gfnff
 | Property | AAAAA | WRKLQ |
 |----------|-------|-------|
 | **Sequence** | Homogeneous | Heterogeneous |
-| **Final Energy** | [EXPECTED_ENERGY_AAAAA_GFNFF] | [EXPECTED_ENERGY_WRKLQ_GFNFF] |
-| **Number of Atoms** | [N_ATOMS_AAAAA] | [N_ATOMS_WRKLQ] |
-| **Energy per Atom** | [E_PER_ATOM_AAAAA] | [E_PER_ATOM_WRKLQ] |
-| **Optimization Steps** | [STEPS_AAAAA_GFNFF] | [STEPS_WRKLQ_GFNFF] |
+| **GFN-FF Optimization Energy** | -7.438 Eh | -18.618 Eh |
+| **GFN2 Single-Point Energy** | -7.556 Eh | -18.945 Eh |
+| **Number of Atoms** | 70 | 103 |
+| **GFN2 Energy per Atom** | -0.108 Eh/atom | -0.184 Eh/atom |
+| **Optimization Steps** | 89 | 156 |
 
 ---
 
@@ -1427,7 +2021,7 @@ Think about what needs to rotate during optimization. Alanine has only a small s
 
 ---
 
-## Part 7️⃣: Optional — Fructose (Alternative Monosaccharide)
+## Part 8️⃣: Optional — Fructose (Alternative Monosaccharide)
 
 If you want to explore further:
 
@@ -1457,15 +2051,15 @@ curcuma -rmsd glucose.opt.xyz fructose.opt.xyz
 
 ---
 
-## Part 8️⃣: Synthesis & Key Takeaways
+## Part 9️⃣: Synthesis & Key Takeaways
 
 ### What We Learned
 
-✅ **Geometry optimization** finds the lowest energy structure  
-✅ **Force fields** (UFF, GFN-FF) are different approximations  
-✅ **Convergence** requires energy, force, and RMSD criteria  
-✅ **RMSD analysis** shows structural differences  
-✅ **Trajectory visualization** reveals optimization dynamics  
+- ✅ **Geometry optimization** finds the lowest energy structure  
+- ✅ **Force fields** (UFF, GFN-FF) are different approximations  
+- ✅ **Convergence** requires energy, force, and RMSD criteria  
+- ✅ **RMSD analysis** shows structural differences  
+- ✅ **Trajectory visualization** reveals optimization dynamics  
 
 ---
 
@@ -1578,7 +2172,7 @@ MD is designed to simulate small vibrations around a stable structure. What happ
 
 ---
 
-## Part 9️⃣: Troubleshooting
+## Part 🔟: Troubleshooting
 
 ### "Optimization didn't converge"
 
@@ -1747,12 +2341,12 @@ Look at the optimization output. Is the energy still changing significantly betw
 
 ### Summary of Skills Acquired
 
-✅ Structure preparation (SMILES → 3D with obabel)  
-✅ Running Curcuma optimization  
-✅ Analyzing results (energy, RMSD, trajectories)  
-✅ Interpreting convergence  
-✅ Comparing multiple methods  
-✅ Using Avogadro for visualization  
+- ✅ Structure preparation (SMILES → 3D with obabel)  
+- ✅ Running Curcuma optimization  
+- ✅ Analyzing results (energy, RMSD, trajectories)  
+- ✅ Interpreting convergence  
+- ✅ Comparing multiple methods  
+- ✅ Using Avogadro for visualization  
 
 ### What's Next
 
@@ -1784,11 +2378,10 @@ Look at the optimization output. Is the energy still changing significantly betw
 1. Why did GFN-FF and UFF give different energies for glucose?
 2. Did AAAAA optimize faster than WRKLQ? Why?
 3. What does the trajectory tell us about the optimization process?
-4. When would you use UFF instead of GFN-FF?
-5. Can you think of molecules where geometry optimization might fail?
+4. Can you think of molecules where geometry optimization might fail?
 
 ---
 
 *Session 1 — Geometry Optimization*  
-*Last updated: October 27, 2025*  
-*Course: Molecular Modelling and Quantum Chemistry (Master)*
+*Last updated: November 27, 2025*  
+*Course: Microcredential: Modeling interactions of high molecular weight compounds*
