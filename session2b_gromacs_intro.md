@@ -295,7 +295,7 @@ Master these three mouse controls:
 Pymol can be used with console more effictively
 
 
-![Avogadro Interface Overview](screenshots/pymol_console.png)
+![Pymol Console](screenshots/pymol_console.png)
 
 
 ### Display Modes for Proteins
@@ -660,13 +660,13 @@ The **Lemkul workflow** (from the 2024 paper) is a proven, step-by-step process:
    gmx mdrun   →  npt.trr, npt.edr, npt.log
    
 5. PRODUCTION MD
-   Input: prod.mdp, topol.top, npt.gro
+   Input: md.mdp, topol.top, npt.gro
    ↓
-   gmx grompp  →  prod.tpr
-   gmx mdrun   →  prod.trr, prod.edr, prod.log
+   gmx grompp  →  md.tpr
+   gmx mdrun   →  md.trr, md.edr, md.log
    
 6. ANALYSIS
-   Input: prod.edr, prod.xtc
+   Input: md.edr, md.xtc
    ↓
    gmx energy   →  energy.xvg (plot)
    gmx rms      →  rmsd.xvg (plot)
@@ -785,149 +785,60 @@ In contrast to curcuma, where every parameter can be controlled as argument from
 
 ### Example: Energy Minimization (minim.mdp)
 
-```
-; minim.mdp - Steepest Descent Energy Minimization
-; Run parameters
-integrator              = steep      ; steepest descent
-emtol                   = 100.0      ; stop when F < 100 kJ/mol/nm
-emstep                  = 0.01       ; initial step size (nm)
-nsteps                  = 50000      ; max iterations
+MDP files control everything about your simulation. Here's what a minimization MDP contains:
 
-; Output control
-nstenergy               = 500        ; save energy every 500 steps
-nstlog                  = 500        ; save log every 500 steps
-nstxout-compressed      = 500        ; save trajectory every 500 steps
-```
+**Key sections:**
 
-**Key parameters:**
+- **Integrator**: `steep` (steepest descent) or `cg` (conjugate gradient)
+- **Convergence**: `emtol` (energy tolerance) determines when to stop
+- **Output**: Controls what gets saved and how often
 
-- `integrator`: Algorithm (steep = steepest descent, CG = conjugate gradient)
-- `emtol`: Convergence criterion (energy gradient threshold)
-- `nsteps`: Maximum iterations
-- `nstenergy`: Output frequency
+**You'll create complete MDP files in Part 5 using tested templates.**
 
-> **📚 Reference:** These minimization parameters implement the optimization concepts from **Session 1**:
->
-> - `emtol` (energy tolerance) is like the convergence criterion (gradient norm threshold)
-> - `nsteps` corresponds to maximum optimization iterations
-> - The minimization algorithm in GROMACS works the same way as curcuma's geometry optimization—finding the nearest energy minimum
-> - Review Session 1 for the theory behind why we need these convergence criteria
+> **💡 Where to find working MDPs:** See **Part 5** for complete, tested MDP files that you'll use in the workflow.
 
 ---
 
 ### Example: NVT Equilibration (nvt.mdp)
 
-```
-; nvt.mdp - NVT Equilibration (300 K, 100 ps)
-; Run parameters
-integrator              = md         ; normal MD
-dt                      = 0.002      ; time step (2 fs)
-nsteps                  = 50000      ; 2 fs × 50000 = 100 ps
-nstcomm                 = 100        ; remove COM motion every 100 steps
+NVT equilibration requires these key settings:
 
-; Output control
-nstenergy               = 1000       ; save energy every 1000 steps (2 ps)
-nstlog                  = 1000       
-nstxout-compressed      = 1000       ; trajectory every 2 ps
+**Key parameters:**
 
-; Temperature coupling
-tcoupl                  = V-rescale  ; thermostat (like CSVR)
-tau-t                   = 0.1        ; coupling time (ps)
-ref-t                   = 300        ; target temperature (K)
-tc-grps                 = System     ; couple entire system
+- `integrator = md` (molecular dynamics, not minimization)
+- `tcoupl = V-rescale` (thermostat to reach target temperature)
+- `ref_t = 298` (target temperature in Kelvin)
+- `pcoupl = no` (no pressure coupling = constant volume)
 
-; Pressure coupling (constant V)
-pcoupl                  = no         ; NO pressure coupling
-```
-
-**Key differences from minimization:**
-
-- `integrator = md` (instead of steep)
-- `dt = 0.002` (time step in ps, usually 2 fs)
-- `nsteps = 50000` (run duration)
-- `tcoupl = V-rescale` (CSVR-like thermostat!)
-- `pcoupl = no` (constant volume)
-
-> **📚 Reference:** These MD parameters implement concepts from **Session 2A**:
->
-> - `integrator = md`: Molecular dynamics simulating Newton's equations of motion
-> - `tcoupl = V-rescale`: This is **GROMACS's equivalent of the CSVR thermostat** you used in Session 2A!
->
->   - CSVR (Canonical Sampling Via Velocity Rescaling) generates a proper NVT ensemble
->   - Much better than Berendsen for production runs (which you also tested in Session 2A)
-> - `tau-t = 0.1`: Thermostat coupling time in ps (analogous to curcuma's coupling parameter)
-> - `pcoupl = no`: This creates the **NVT ensemble** (constant N, V, T) discussed in Session 2A
-> - `ref-t = 300`: Target temperature, just like curcuma's `-t 300` parameter
->
-> **Why this matters:** Session 2A showed you that CSVR is the standard for production MD because it generates correct statistical distributions. GROMACS uses V-rescale (the same physics) to achieve the same goals. Review Session 2A if you need to refresh on why thermostat choice matters!
+**You'll create complete MDP files in Part 5 using tested templates.**
 
 ---
 
 ### Example: NPT Equilibration (npt.mdp)
 
-```
-; npt.mdp - NPT Equilibration (300 K, 1 bar, 100 ps)
-; (Same as nvt.mdp, but with pressure coupling)
+NPT adds pressure coupling to NVT:
 
-integrator              = md
-dt                      = 0.002
-nsteps                  = 50000
+**Key differences from NVT:**
 
-nstenergy               = 1000
-nstlog                  = 1000
-nstxout-compressed      = 1000
+- `pcoupl = C-rescale` (barostat to equilibrate pressure)
+- `ref_p = 1.0` (target pressure in bar)
+- `continuation = yes` (continues from NVT checkpoint)
 
-; Temperature coupling (same as NVT)
-tcoupl                  = V-rescale
-tau-t                   = 0.1
-ref-t                   = 300
-tc-grps                 = System
-
-; Pressure coupling (allow volume to adjust)
-pcoupl                  = Parrinello-Rahman  ; barostat
-pcoupltype              = isotropic          ; uniform scaling
-tau-p                   = 2.0                ; pressure coupling time
-ref-p                   = 1.0                ; target pressure (bar)
-compressibility         = 4.5e-5             ; water compressibility
-```
-
-**New parameters:**
-
-- `pcoupl = Parrinello-Rahman` — Barostat (pressure control)
-- `ref-p = 1.0` — Target pressure (1 bar = atmospheric)
-- `tau-p = 2.0` — Pressure coupling time
+**You'll create complete MDP files in Part 5 using tested templates.**
 
 ---
 
-### Example: Production Run (prod.mdp)
+### Example: Production Run (md.mdp)
 
-```
-; prod.mdp - Production MD (300 K, 1 bar, 500 ps)
-; Most parameters same as NPT, but longer
+Production MD is your actual data-generating simulation:
 
-integrator              = md
-dt                      = 0.002
-nsteps                  = 250000     ; 2 fs × 250000 = 500 ps (longer!)
+**Key differences from equilibration:**
 
-nstenergy               = 1000
-nstlog                  = 1000
-nstxout-compressed      = 500        ; trajectory every 1 ps
+- Much longer duration (e.g., 50 ns vs 100 ps)
+- No position restraints (protein can move freely)
+- Same temperature/pressure coupling as NPT
 
-; Temperature coupling
-tcoupl                  = V-rescale
-tau-t                   = 0.1
-ref-t                   = 300
-tc-grps                 = System
-
-; Pressure coupling
-pcoupl                  = Parrinello-Rahman
-pcoupltype              = isotropic
-tau-p                   = 2.0
-ref-p                   = 1.0
-compressibility         = 4.5e-5
-```
-
-**Key difference:** Longer `nsteps` (500 ps instead of 100 ps).
+**You'll create complete MDP files in Part 5 using tested templates.**
 
 ---
 
@@ -1022,6 +933,16 @@ compressibility         = 4.5e-5
 ## Part 5️⃣: The Complete Lemkul Workflow — Step by Step
 
 > **💡 This is the complete, hands-on workflow.** Follow these steps in order to prepare and run your MD simulation.
+
+> **📁 MDP Files in This Section:**
+>
+> The MDP files below are the **tested, working versions** you should use. They include:
+>
+> - Complete parameter sets
+> - Trajectory output configuration (creates .xtc files)
+> - Values tested by instructors
+>
+> These are the **only** MDP files you need for the course. Don't modify parameters unless instructed.
 
 ---
 
@@ -1213,6 +1134,27 @@ GROMACS reminds you: "Given enough eyeballs, all bugs are shallow." (Linus Torva
 - **Please note**, the reference to *A. Bondi* appearing in the logs. Always track citations and add this reference in your reports.
 
 **Output:** `conf_solv.gro` — Protein + water molecules
+
+### Step 3️⃣ - Visualisation
+
+***Check the structure bevor solvation and after solvation***
+
+```bash
+pymol conf.gro conf_solv.gro
+```
+
+***You can hide the water molecules and show only the protein***
+
+The letter-buttons can be toggled for all loaded structures or for individually loaded or selected structures. Their puprose are:
+
+- A Action
+- S Show
+- H Hide
+- C Color
+
+![Pymol Console](screenshots/pymol_hide.png)
+
+![Pymol Console](screenshots/pymol_water.png)
 
 ---
 
@@ -1454,6 +1396,7 @@ echo "Potential" | gmx energy -f em.edr -o potential_em.xvg
 ```
 
 **What to look for:**
+
 - Final potential energy should be **negative** (e.g., -4.2e5 kJ/mol for a typical protein)
 - Energy should **decrease** throughout minimization
 - Should reach plateau (convergence)
@@ -1461,23 +1404,28 @@ echo "Potential" | gmx energy -f em.edr -o potential_em.xvg
 **2. Plot energy curve:**
 
 ```bash
-gnuplot -persist -e "plot 'potential_em.xvg' with lines title 'Potential Energy'"
+gnuplot -persist -e "plot 'potential_em.xvg' every ::11 with lines title 'Potential Energy'"
 ```
 
 **Interpretation:**
+
 - ✅ **Good:** Sharp drop followed by plateau (converged)
-- ⚠️ **Warning:** Still decreasing at end → extend `nsteps` in minim.mdp
+- ⚠️ **Warning:** Still decreasing at end → extend `nsteps` in minim.mdp and rerun the minimsation
 - ❌ **Bad:** Energy increasing → check structure for clashes
 
 **3. Visualize minimized structure in PyMOL:**
 
 ```bash
-pymol em.gro
-# Or load trajectory to see minimization progress:
-pymol em.xtc
+# Load structure first, then trajectory
+pymol em.gro em.trr
+# Or start with structure and load trajectory in PyMOL console:
+# pymol
+# > load em.gro
+# > load em.xtc
 ```
 
 **PyMOL tips:**
+
 - Check for any distorted geometry (stretched bonds)
 - Compare to input structure: `load conf_ions.gro` then `align em, conf_ions`
 - Minimize should fix bad contacts without large structural changes
@@ -1568,10 +1516,11 @@ After NVT completes, verify temperature stability and check structural drift:
 
 ```bash
 echo "Temperature" | gmx energy -f nvt.edr -o temperature_nvt.xvg
-gnuplot -persist -e "plot 'temperature_nvt.xvg' with lines title 'Temperature'"
+gnuplot -persist -e "plot 'temperature_nvt.xvg' every ::11 with lines title 'Temperature'"
 ```
 
 **What to look for:**
+
 - Temperature should fluctuate around **298 K** (±5 K is normal)
 - Should stabilize within first 20-30 ps
 - ❌ If temperature drifts significantly → thermostat issue
@@ -1582,14 +1531,22 @@ gnuplot -persist -e "plot 'temperature_nvt.xvg' with lines title 'Temperature'"
 # RMSD of backbone atoms relative to starting structure
 echo "Backbone Backbone" | gmx rms -s nvt.tpr -f nvt.xtc -o rmsd_nvt_backbone.xvg
 
+# Plot
+gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' every ::11 with lines title 'RMSD Backbone'"
+```
+
+```bash
 # RMSD of C-alpha atoms
 echo "C-alpha C-alpha" | gmx rms -s nvt.tpr -f nvt.xtc -o rmsd_nvt_ca.xvg
 
 # Plot
-gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' with lines title 'RMSD Backbone'"
+gnuplot -persist -e "plot 'rmsd_nvt_ca.xvg' every ::11 with lines title 'RMSD of C-alpha atoms'"
 ```
 
+**This are short runs, so the following interpretation might not fully hold**
+
 **Interpretation:**
+
 - ✅ **Good:** RMSD rises initially (~0-2 Å), then plateaus
   - Initial rise: protein adjusting to temperature
   - Plateau: structure stable at 298 K
@@ -1599,9 +1556,10 @@ gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' with lines title 'RMSD Backbon
 **3. Visualize NVT trajectory in PyMOL:**
 
 ```bash
-pymol nvt.xtc
-# Load reference structure for comparison
-pymol nvt.tpr
+# Load structure first, then trajectory
+pymol nvt.gr nvt.xtc
+# Or start with structure from minimization:
+# pymol em.gro nvt.xtc
 ```
 
 **PyMOL commands for trajectory analysis:**
@@ -1615,6 +1573,7 @@ set cache_frames, 0
 ```
 
 **What to observe:**
+
 - Does the protein "breathe" (small fluctuations)?
 - Are loop regions more flexible than helices/sheets?
 - Any large-scale movements? (not expected during short NVT)
@@ -1687,7 +1646,7 @@ EOF
 **Then run NPT equilibration:**
 
 ```bash
-gmx grompp -f npt.mdp -c nvt.gro -p topol.top -t nvt.cpt -o npt.tpr
+gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -p topol.top -t nvt.cpt -o npt.tpr
 gmx mdrun -v -deffnm npt
 ```
 
@@ -1708,10 +1667,11 @@ After NPT completes, verify pressure/density equilibration and structural stabil
 
 ```bash
 echo "Pressure" | gmx energy -f npt.edr -o pressure_npt.xvg
-gnuplot -persist -e "plot 'pressure_npt.xvg' with lines title 'Pressure'"
+gnuplot -persist -e "plot 'pressure_npt.xvg' every ::11 with lines title 'Pressure'"
 ```
 
 **What to look for:**
+
 - Pressure should fluctuate around **1 bar** (±100 bar fluctuations are normal!)
 - Average should converge to ~1 bar over 500 ps
 - ❌ If average pressure >> 1 bar or << 1 bar → barostat issue
@@ -1720,10 +1680,11 @@ gnuplot -persist -e "plot 'pressure_npt.xvg' with lines title 'Pressure'"
 
 ```bash
 echo "Density" | gmx energy -f npt.edr -o density_npt.xvg
-gnuplot -persist -e "plot 'density_npt.xvg' with lines title 'Density'"
+gnuplot -persist -e "plot 'density_npt.xvg' every ::11 with lines title 'Density'"
 ```
 
 **Interpretation:**
+
 - Density should stabilize around **1000 kg/m³** (water-based system)
 - Box volume adjusts during NPT to achieve target pressure
 - Stable density = stable box size = good equilibration
@@ -1735,10 +1696,11 @@ gnuplot -persist -e "plot 'density_npt.xvg' with lines title 'Density'"
 echo "Backbone Backbone" | gmx rms -s npt.tpr -f npt.xtc -o rmsd_npt_backbone.xvg
 
 # Plot alongside NVT RMSD for comparison
-gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' with lines title 'NVT RMSD', 'rmsd_npt_backbone.xvg' with lines title 'NPT RMSD'"
+gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' every ::26 with lines title 'NVT RMSD', 'rmsd_npt_backbone.xvg' every ::11 with lines title 'NPT RMSD'"
 ```
 
 **Interpretation:**
+
 - ✅ **Good:** RMSD similar to NVT end value (protein remains stable)
 - ✅ **Good:** Small continued rise (<0.5 Å) as system fully equilibrates
 - ⚠️ **Warning:** Large jump in RMSD → pressure adjustment caused structural change
@@ -1748,9 +1710,8 @@ gnuplot -persist -e "plot 'rmsd_nvt_backbone.xvg' with lines title 'NVT RMSD', '
 **4. Visualize NPT trajectory in PyMOL:**
 
 ```bash
-pymol npt.xtc
-# Compare to NVT end structure
-pymol nvt.gro npt.xtc
+# Load structure first, then trajectory
+pymol npt.gro npt.trr
 ```
 
 **PyMOL analysis:**
@@ -1766,6 +1727,7 @@ color_by_ss
 ```
 
 **What to observe:**
+
 - Box size should stabilize (visible in PyMOL cell)
 - Protein structure should remain intact (no unfolding)
 - Water molecules equilibrated around protein
@@ -1775,12 +1737,13 @@ color_by_ss
 ```bash
 # Load all three stages in PyMOL for comparison
 pymol em.gro nvt.gro npt.gro
-# Align to see structural changes
-align nvt, em
-align npt, nvt
+# In PyMOL console: Align to see structural changes
+# align nvt, em
+# align npt, nvt
 ```
 
 **Expected progression:**
+
 - **EM → NVT:** Minimal change (just heating)
 - **NVT → NPT:** Box size adjustment, protein stable
 - **Overall:** RMSD from EM to NPT typically 1-3 Å (normal thermal fluctuation)
@@ -1852,14 +1815,14 @@ EOF
 **Then prepare for submission:**
 
 ```bash
-gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o prod.tpr
-# Now submit prod.tpr to instructor for cluster execution
+gmx grompp -f md.mdp -c npt.gro -r nvt.gro -p topol.top -t npt.cpt -o md.tpr
+# Now submit md.tpr to instructor for cluster execution
 ```
 
 **Output:**
 
-- `prod.tpr` — Ready for the instructor to run on cluster
-- (After instructor runs it: `prod.xtc` trajectory, `prod.edr` energy, `prod.log` log file)
+- `md.tpr` — Ready for the instructor to run on cluster
+- (After instructor runs it: `md.xtc` trajectory, `md.edr` energy, `md.log` log file)
 
 ---
 
@@ -1892,8 +1855,8 @@ gmx grompp -f npt.mdp -c nvt.gro -p topol.top -t nvt.cpt -o npt.tpr
 gmx mdrun -v -deffnm npt
 
 # 8. Production (after creating md.mdp with heredoc above)
-gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o prod.tpr
-# → Submit prod.tpr to instructor
+gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o md.tpr
+# → Submit md.tpr to instructor
 ```
 
 ---
@@ -1977,6 +1940,7 @@ gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o prod.tpr
 > **🔗 Connection to Previous Sessions:**
 >
 > After running your MD simulation (Part 5), you need to extract meaningful information from the trajectory. These analysis tools help you answer key questions:
+>
 > - Did the protein remain stable? (RMSD)
 > - Which regions are flexible? (RMSF)
 > - What are the dominant conformational changes? (PCA)
@@ -2007,20 +1971,21 @@ Where:
 
 #### RMSD Workflow with GROMACS
 
-**Step 1: RMSD relative to starting structure**
+**Step 1: RMSD of backbone atoms**
 
 ```bash
-# RMSD of backbone atoms
 echo "Backbone Backbone" | gmx rms -s md.tpr -f md.xtc -o rmsd_backbone.xvg
+gnuplot -persist -e "plot 'rmsd_backbone.xvg' every ::5 with lines title 'RMSD per Backbone'"
 
-# RMSD of C-alpha atoms only
-echo "C-alpha C-alpha" | gmx rms -s md.tpr -f md.xtc -o rmsd_ca.xvg
+
 ```
 
-**Step 2: Plot with gnuplot**
+**Step 2: RMSD of C-alpha atoms only**
 
 ```bash
-gnuplot -persist -e "plot 'rmsd_backbone.xvg' with lines title 'RMSD'"
+echo "C-alpha C-alpha" | gmx rms -s md.tpr -f md.xtc -o rmsd_ca.xvg
+
+gnuplot -persist -e "plot 'rmsd_ca.xvg' every ::5 with lines title 'RMSD per C-alpha'"
 # Or export for Python/other tools
 ```
 
@@ -2035,19 +2000,23 @@ gnuplot -persist -e "plot 'rmsd_backbone.xvg' with lines title 'RMSD'"
 **Task:** Calculate RMSD for your protein during the production MD run.
 
 **Steps:**
-1. Run `gmx rms` on your MD trajectory (both backbone and C-alpha)
-2. Generate plots showing both
-3. Describe what you observe:
+
+- 1. Run `gmx rms` on your MD trajectory (both backbone and C-alpha)
+- 2. Generate plots showing both
+- 3. Describe what you observe:
+
    - How quickly does RMSD rise initially?
    - Does it plateau by the end?
    - Which atoms move more (backbone vs C-alpha)?
 
 **Interpretation guide:**
+
 - If RMSD plateaus within 100 ps → good equilibration
 - If RMSD keeps rising → protein still exploring conformational space (might need longer MD)
 - Large difference between backbone and C-alpha RMSD → loop regions moving significantly
 
 > **📚 Reference:** RMSD connects to **Session 2A**:
+>
 > - You calculated RMSD between optimized structures in Session 2A
 > - Now you're tracking RMSD over time during MD
 > - Same concept, different application!
@@ -2063,10 +2032,12 @@ RMSF measures per-residue flexibility over time:
 $$\text{RMSF}_i = \sqrt{\frac{1}{T} \sum_{t=1}^{T} |\vec{r}_i(t) - \langle\vec{r}_i\rangle|^2}$$
 
 Where:
+
 - $\langle\vec{r}_i\rangle$ = time-averaged position of atom $i$
 - $T$ = number of time frames
 
 **Physical meaning:**
+
 - High RMSF → flexible regions (loops, termini)
 - Low RMSF → rigid regions (secondary structures)
 - RMSF ≈ experimental B-factors (crystal structure flexibility)
@@ -2077,11 +2048,18 @@ Where:
 
 ```bash
 # RMSF per residue (C-alpha atoms)
-echo "C-alpha" | gmx rmsf -s md.tpr -f md.xtc -o rmsf_residue.xvg -res
+echo "C-alpha" | gmx rmsf -s md.tpr -f md.xtc -o rmsf_alpha.xvg -res
+gnuplot -persist -e "plot 'rmsf_alpha.xvg' every ::4 with lines title 'RMSF per C-alpha'"
 
-# RMSF per atom (all backbone)
-echo "Backbone" | gmx rmsf -s md.tpr -f md.xtc -o rmsf_atom.xvg
 ```
+
+
+```bash
+# RMSF per atom (all backbone)
+echo "Backbone" | gmx rmsf -s md.tpr -f md.xtc -o rmsf_backbone.xvg
+gnuplot -persist -e "plot 'rmsf_backbone.xvg' every ::4 with lines title 'RMSF per Backbone'"
+```
+
 
 **Step 2: Compare with B-factors**
 
@@ -2091,7 +2069,7 @@ echo "C-alpha" | gmx rmsf -s md.tpr -f md.xtc -o rmsf.xvg -oq rmsf_bfactor.pdb -
 
 # Visualize in PyMOL colored by B-factor (now showing MD flexibility!)
 pymol rmsf_bfactor.pdb
-# In PyMOL: Color → B-factor → Color
+# In PyMOL: Color → Spectrum → B-factor 
 ```
 
 **Step 3: Interpretation**
@@ -2105,16 +2083,19 @@ pymol rmsf_bfactor.pdb
 **Task:** Analyze which regions of your protein are flexible.
 
 **Steps:**
-1. Calculate RMSF per residue
-2. Generate B-factor PDB file from RMSF
-3. Visualize in PyMOL (color by B-factor)
-4. Identify:
+
+- 1. Calculate RMSF per residue
+- 2. Generate B-factor PDB file from RMSF
+- 3. Visualize in PyMOL (color by B-factor)
+- 4. Identify:
+
    - Most flexible regions (high RMSF)
    - Most rigid regions (low RMSF)
    - Are termini more flexible than the core?
    - Are loops between secondary structures flexible?
 
 **Biological interpretation:**
+
 - Flexible loops often involved in substrate binding
 - Interface regions might be more flexible than buried core
 - Flexible termini often disordered in experiments too
@@ -2123,22 +2104,30 @@ pymol rmsf_bfactor.pdb
 
 ### Analysis 3: Energy Monitoring
 
-> **🔗 You've already used this!** If you completed Part 5, you checked energy convergence during minimization and temperature/pressure during equilibration. Here we cover the full range of energy analysis tools.
+> **🔗 You've already used this!** If you completed Part 5, you checked energy convergence during minimization and temperature/pressure during equilibration. Here we cover more energy analysis tools.
 
 #### Quick Energy Check
 
 ```bash
 # Extract potential energy
 echo "Potential" | gmx energy -f md.edr -o potential.xvg
+gnuplot -persist -e "plot 'potential.xvg' every ::11 with lines title 'Potential'"
+```
 
+```bash
 # Extract temperature
 echo "Temperature" | gmx energy -f md.edr -o temperature.xvg
+gnuplot -persist -e "plot 'temperature.xvg' every ::11 with lines title 'Temperature'"
+```
 
+```bash
 # Extract pressure (NPT only)
-echo "Pressure" | gmx energy -f npt.edr -o pressure.xvg
+echo "Pressure" | gmx energy -f md.edr -o pressure.xvg
+gnuplot -persist -e "plot 'pressure.xvg' every ::11 with lines title 'Pressure'"
 ```
 
 **What to check:**
+
 - Energy should be stable (no drift)
 - Temperature should fluctuate around target (298 K)
 - Pressure should average around 1 bar (NPT)
@@ -2154,6 +2143,7 @@ echo "Pressure" | gmx energy -f npt.edr -o pressure.xvg
 MD trajectories contain thousands of atomic coordinates × thousands of time frames = millions of data points. PCA reduces this complexity by identifying the **most important motions**.
 
 **Key idea:**
+
 - Proteins move in high-dimensional space (3N dimensions for N atoms)
 - Most motions are small thermal fluctuations (noise)
 - A few collective motions dominate (signal)
@@ -2171,6 +2161,7 @@ After removing translation/rotation, calculate the covariance matrix:
 $$C_{ij} = \langle (x_i - \langle x_i \rangle)(x_j - \langle x_j \rangle) \rangle$$
 
 Where:
+
 - $x_i$ = coordinate of atom $i$ (could be x, y, or z)
 - $\langle \cdots \rangle$ = time average
 - $C_{ij}$ = how much coordinates $i$ and $j$ move together
@@ -2180,10 +2171,12 @@ Where:
 Solve: $C \vec{v}_k = \lambda_k \vec{v}_k$
 
 This gives:
+
 - **Eigenvectors** $\vec{v}_k$ = directions of collective motion (principal components)
 - **Eigenvalues** $\lambda_k$ = variance along each direction (motion amplitude)
 
 **Physical Meaning:**
+
 - **Large $\lambda_k$** → important collective motion (e.g., domain opening)
 - **Small $\lambda_k$** → thermal noise
 - **Few large eigenvalues** → motion dominated by specific modes
@@ -2195,7 +2188,7 @@ This gives:
 
 ```bash
 # Extract backbone atoms for PCA
-echo "Backbone" | gmx covar -s md.tpr -f md.xtc -o eigenval.xvg -v eigenvec.trr
+echo "Backbone" | gmx covar -s gro -f md.xtc -o eigenval.xvg -v eigenvec.trr
 
 # This produces:
 # - eigenval.xvg: eigenvalue spectrum
@@ -2237,16 +2230,18 @@ echo "Backbone Backbone" | gmx anaeig -s md.tpr -f md.xtc -v eigenvec.trr \
 Plot `eigenval.xvg`:
 
 ```bash
-gnuplot -persist -e "plot 'eigenval.xvg' with lines title 'Eigenvalue Spectrum'"
+gnuplot -persist -e "plot 'eigenval.xvg' every ::26 with lines title 'Eigenvalue Spectrum'"
 # Or use Python/other tools
 ```
 
 **What to look for:**
+
 - **Steep drop** after first few eigenvalues → motion dominated by few modes
 - **Gradual decay** → many modes contribute equally (less structured motion)
 - **Cumulative variance:** First 3 PCs typically capture 60-80% of total motion
 
 **Example interpretation:**
+
 - PC1 has $\lambda_1$ = 50 nm² → dominant motion (e.g., hinge bending)
 - PC2 has $\lambda_2$ = 20 nm² → secondary motion (e.g., loop reorientation)
 - PC3-10 have $\lambda_k$ < 5 nm² → mostly thermal noise
@@ -2256,10 +2251,11 @@ gnuplot -persist -e "plot 'eigenval.xvg' with lines title 'Eigenvalue Spectrum'"
 Plot PC1 vs PC2:
 
 ```bash
-gnuplot -persist -e "plot 'pc1_pc2_2dproj.xvg' with points title 'PC1 vs PC2'"
+gnuplot -persist -e "plot 'pc1_pc2_2dproj.xvg' every ::26 with points title 'PC1 vs PC2'"
 ```
 
 **What to look for:**
+
 - **Clusters** → stable conformational states
 - **Linear trajectory** → directed transition (e.g., open → closed)
 - **Circular/diffuse cloud** → random sampling (well-equilibrated)
@@ -2275,6 +2271,7 @@ pymol pc1_extreme.pdb
 ```
 
 **What to look for:**
+
 - Does PC1 represent a biologically relevant motion?
 - Which residues move the most?
 - Identify domains or regions involved in motion
@@ -2293,6 +2290,7 @@ pymol pc1-3_filtered.xtc
 #### Connection to Previous Sessions
 
 > **🔗 Reference:** PCA builds on concepts from earlier sessions:
+>
 > - **Session 1**: Geometry optimization found local minima. PCA finds pathways between them!
 > - **Session 2A**: RMSD measured overall displacement. PCA identifies *which* motions contribute most!
 > - You've already generated MD trajectories—now extract the biologically relevant motions.
@@ -2302,6 +2300,7 @@ pymol pc1-3_filtered.xtc
 **Task:** Perform PCA on your production MD trajectory from Part 5.
 
 **Steps:**
+
 1. Generate covariance matrix with `gmx covar` (backbone atoms recommended)
 2. Extract first 3 eigenvectors with `gmx anaeig`
 3. Create 2D projection plot (PC1 vs PC2)
@@ -2310,12 +2309,14 @@ pymol pc1-3_filtered.xtc
 6. **Interpret:** What motion does PC1 represent? Is it biologically relevant?
 
 **Deliverables:**
+
 - Plot of eigenvalue spectrum (first 10 eigenvalues)
 - 2D plot of PC1 vs PC2 projections
 - Description of PC1 motion (what is your protein doing?)
 - Screenshot of PC1 extreme structures in PyMOL
 
 **Discussion points:**
+
 - How much of the total variance is captured by PC1, PC2, PC3?
 - Is the motion you observe biologically relevant?
 - Could you relate it to the protein's function?
@@ -2330,7 +2331,6 @@ pymol pc1-3_filtered.xtc
 - [[X]] Structural drift or slow conformational change
 - [[ ]] The thermostat is working correctly
 - [[ ]] Nothing unusual (this is expected)
-
 ********************
 
 **Explanation:**
@@ -2342,7 +2342,7 @@ pymol pc1-3_filtered.xtc
 
 **Pro tip:** Compare to crystal structures: does your MD conformation match experimental data or known conformational states?
 
-********************
+
 
 <details>
 <summary>💡 Need more context?</summary>
@@ -2354,7 +2354,7 @@ RMSD tells you "how far is the protein from its starting point?" A rising RMSD m
 Check the RMSD curve shape to distinguish!
 
 </details>
-
+********************
 ---
 
 **Question 2:** High RMSF values in your protein are expected at:
@@ -2363,7 +2363,6 @@ Check the RMSD curve shape to distinguish!
 - [[ ]] Alpha-helices
 - [[ ]] Beta-sheets
 - [[ ]] Catalytic residues (always rigid)
-
 ********************
 
 **Explanation:**
@@ -2377,7 +2376,7 @@ Check the RMSD curve shape to distinguish!
 
 **Pro tip:** Use RMSF to predict functional regions. High RMSF often indicates substrate-binding pockets or allosteric sites.
 
-********************
+
 
 <details>
 <summary>💡 Need more context?</summary>
@@ -2385,7 +2384,7 @@ Check the RMSD curve shape to distinguish!
 Think about protein architecture: secondary structures are "locked in" by hydrogen bonds. Loops between them have no such constraints and wiggle freely. This makes loops good candidates for dynamic function!
 
 </details>
-
+********************
 ---
 
 **Question 3:** In PCA, the first principal component (PC1) represents:
@@ -2394,7 +2393,6 @@ Think about protein architecture: secondary structures are "locked in" by hydrog
 - [[X]] The direction of maximum variance (most important motion)
 - [[ ]] The least important motion
 - [[ ]] The time-averaged structure
-
 ********************
 
 **Explanation:**
@@ -2408,7 +2406,7 @@ Think about protein architecture: secondary structures are "locked in" by hydrog
 
 **Pro tip:** Focus your interpretation on PC1, PC2, PC3. They usually account for 70-90% of all motion!
 
-********************
+
 
 <details>
 <summary>💡 Need more context?</summary>
@@ -2416,7 +2414,7 @@ Think about protein architecture: secondary structures are "locked in" by hydrog
 Eigenvectors ranked by their eigenvalues (largest first). PC1 has the biggest eigenvalue = captures the most variance = most important motion. It's like: "If I had to describe the protein's motion with one number, what number would be most informative?" That's PC1.
 
 </details>
-
+********************
 ---
 
 **Question 4:** If your eigenvalue spectrum shows 20 large eigenvalues of similar magnitude, this suggests:
@@ -2425,7 +2423,6 @@ Eigenvectors ranked by their eigenvalues (largest first). PC1 has the biggest ei
 - [[ ]] Simulation failed
 - [[X]] Many different modes contribute equally (complex/flexible system)
 - [[ ]] Perfect sampling
-
 ********************
 
 **Explanation:**
@@ -2442,7 +2439,6 @@ Eigenvectors ranked by their eigenvalues (largest first). PC1 has the biggest ei
 
 **Pro tip:** Focus on the cumulative variance: how many PCs needed to capture 80% of motion? Many = complex dynamics!
 
-********************
 
 <details>
 <summary>💡 Need more context?</summary>
@@ -2455,6 +2451,7 @@ Both are valid—they tell you about your protein's dynamics!
 
 </details>
 
+********************
 ---
 
 ## Part 7️⃣: Your Role in This Course
@@ -2482,7 +2479,7 @@ gmx grompp -f nvt.mdp -c em.gro -p topol.top -o nvt.tpr
 gmx grompp -f npt.mdp -c nvt.gro -p topol.top -t nvt.cpt -o npt.tpr
 
 # Template: Production (500 ps, 300 K, 1 bar)
-gmx grompp -f prod.mdp -c npt.gro -p topol.top -t npt.cpt -o prod.tpr
+gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o md.tpr
 ```
 
 **Your submission:**
@@ -2493,8 +2490,8 @@ session3_inputs/
 ├── minim.mdp
 ├── nvt.mdp
 ├── npt.mdp
-├── prod.mdp
-└── em.tpr, nvt.tpr, npt.tpr, prod.tpr  (created by gmx grompp)
+├── md.mdp
+└── em.tpr, nvt.tpr, npt.tpr, md.tpr  (created by gmx grompp)
 ```
 
 ---
@@ -2549,7 +2546,7 @@ session3_inputs/
 
 - ✅ **Correct:** You submit:
 
-  - **.tpr files** (em.tpr, nvt.tpr, npt.tpr, prod.tpr) — ready to run with mdrun
+  - **.tpr files** (em.tpr, nvt.tpr, npt.tpr, md.tpr) — ready to run with mdrun
   - **.mdp files** (optional but good for documentation)
   - **.gro file** (em.gro or nvt.gro, starting coords for next step)
   - **.top file** (topology, so instructor can verify system is correct)
@@ -2734,263 +2731,7 @@ session3_inputs/
 
 ********************
 
-## Part 9️⃣: MDP Templates — Copy-Paste Ready from Lemkul
-
-**These are production-quality MDP files from the Lemkul tutorial.** Copy each one directly into your working directory and use them with `gmx grompp`.
-
-**All templates use:**
-- Time step: **2 fs** (`dt = 0.002`)
-- Temperature: **298 K** (room temperature)
-- Pressure: **1.0 bar** (atmospheric)
-- Thermostat: **V-rescale** (modern, recommended)
-- Barostat: **C-rescale** (modern, recommended)
-- Electrostatics: **PME** (Particle Mesh Ewald)
-- Cutoff scheme: **Verlet** (modern, efficient)
-
----
-
-### minim.mdp — Energy Minimization
-
-**Purpose:** Remove bad atomic contacts and relax the initial structure.
-
-**How to use:** Save this content as `minim.mdp` and run:
-```bash
-gmx grompp -f minim.mdp -c conf_ions.gro -p topol.top -o em.tpr
-gmx mdrun -v -deffnm em
-```
-
-```
-; minim.mdp - used as input into grompp to generate em.tpr
-integrator  = steep         ; Algorithm (steep = steepest descent minimization)
-emtol       = 500.0         ; Stop minimization when the maximum force < 500.0 kJ/mol/nm
-emstep      = 0.01          ; Minimization step size
-nsteps      = 50000         ; Maximum number of (minimization) steps to perform
-
-; Parameters describing how to find the neighbors of each atom and how to calculate the interactions
-nstlist         = 1         ; Frequency to update the neighbor list and long range forces
-cutoff-scheme   = Verlet    ; Buffered neighbor searching
-ns_type         = grid      ; Method to determine neighbor list (simple, grid)
-coulombtype     = PME       ; Treatment of long range electrostatic interactions
-rcoulomb        = 1.2       ; Real-space electrostatic cut-off
-vdw-modifier    = force-switch
-rvdw-switch     = 1.0
-rvdw            = 1.2       ; Short-range van der Waals cut-off
-rlist           = 1.4
-pbc             = xyz       ; Periodic Boundary Conditions in all 3 dimensions
-```
-
----
-
-### nvt.mdp — NVT Equilibration (100 ps)
-
-**Purpose:** Heat the system to 298 K at constant volume.
-
-**How to use:** Save this content as `nvt.mdp` and run:
-```bash
-gmx grompp -f nvt.mdp -c em.gro -p topol.top -o nvt.tpr
-gmx mdrun -v -deffnm nvt
-```
-
-```
-title                   = NVT equilibration
-define                  = -DPOSRES  ; position restrain the protein
-; Run parameters
-integrator              = md        ; leap-frog integrator
-nsteps                  = 50000     ; 2 * 50000 = 100 ps
-dt                      = 0.002     ; 2 fs
-; Output control
-nstxout                 = 500       ; save coordinates every 1.0 ps
-nstvout                 = 500       ; save velocities every 1.0 ps
-nstenergy               = 500       ; save energies every 1.0 ps
-nstlog                  = 500       ; update log file every 1.0 ps
-; Bond parameters
-continuation            = no        ; first dynamics run
-constraint_algorithm    = lincs     ; holonomic constraints
-constraints             = h-bonds   ; bonds involving H are constrained
-lincs_iter              = 1         ; accuracy of LINCS
-lincs_order             = 4         ; also related to accuracy
-; Nonbonded settings
-cutoff-scheme           = Verlet    ; Buffered neighbor searching
-vdwtype                 = cutoff
-vdw-modifier            = force-switch
-ns_type                 = grid      ; search neighboring grid cells
-nstlist                 = 10        ; 20 fs, largely irrelevant with Verlet
-rvdw-switch             = 1.0
-rvdw                    = 1.2       ; short-range van der Waals cutoff (in nm)
-rlist                   = 1.4
-dispcorr                = no
-; Electrostatics
-coulombtype             = PME       ; Particle Mesh Ewald for long-range electrostatics
-rcoulomb                = 1.2       ; short-range electrostatic cutoff (in nm)
-pme_order               = 4         ; cubic interpolation
-fourierspacing          = 0.16      ; grid spacing for FFT
-; Temperature coupling is on
-tcoupl                  = V-rescale ; modified Berendsen thermostat
-tc-grps                 = System
-tau_t                   = 1.0
-ref_t                   = 298
-; Pressure coupling is off
-pcoupl                  = no        ; no pressure coupling in NVT
-; Periodic boundary conditions
-pbc                     = xyz       ; 3-D PBC
-; Velocity generation
-gen_vel                 = yes       ; assign velocities from Maxwell distribution
-gen_temp                = 298       ; temperature for Maxwell distribution
-gen_seed                = -1        ; generate a random seed
-```
-
----
-
-### npt.mdp — NPT Equilibration (500 ps)
-
-**Purpose:** Equilibrate pressure and allow box size to adjust to 1 bar.
-
-**How to use:** Save this content as `npt.mdp` and run:
-```bash
-gmx grompp -f npt.mdp -c nvt.gro -p topol.top -t nvt.cpt -o npt.tpr
-gmx mdrun -v -deffnm npt
-```
-
-```
-title                   = NPT equilibration
-define                  = -DPOSRES  ; position restrain the protein
-; Run parameters
-integrator              = md        ; leap-frog integrator
-nsteps                  = 250000    ; 2 * 250000 = 500 ps
-dt                      = 0.002     ; 2 fs
-; Output control
-nstxout                 = 500       ; save coordinates every 1.0 ps
-nstvout                 = 500       ; save velocities every 1.0 ps
-nstenergy               = 500       ; save energies every 1.0 ps
-nstlog                  = 500       ; update log file every 1.0 ps
-; Bond parameters
-continuation            = yes       ; Restarting after NVT
-constraint_algorithm    = lincs     ; holonomic constraints
-constraints             = h-bonds   ; bonds involving H are constrained
-lincs_iter              = 1         ; accuracy of LINCS
-lincs_order             = 4         ; also related to accuracy
-; Nonbonded settings
-cutoff-scheme           = Verlet    ; Buffered neighbor searching
-vdwtype                 = cutoff
-vdw-modifier            = force-switch
-ns_type                 = grid      ; search neighboring grid cells
-nstlist                 = 10        ; 20 fs, largely irrelevant with Verlet scheme
-rvdw-switch             = 1.0       ; short-range van der Waals cutoff (in nm)
-rvdw                    = 1.2
-rlist                   = 1.4
-dispcorr                = no
-; Electrostatics
-coulombtype             = PME       ; Particle Mesh Ewald for long-range electrostatics
-rcoulomb                = 1.2       ; short-range electrostatic cutoff (in nm)
-pme_order               = 4         ; cubic interpolation
-fourierspacing          = 0.16      ; grid spacing for FFT
-; Temperature coupling is on
-tcoupl                  = V-rescale             ; modified Berendsen thermostat
-tc-grps                 = System
-tau_t                   = 1.0
-ref_t                   = 298
-; Pressure coupling is on
-pcoupl                  = C-rescale
-pcoupltype              = isotropic             ; uniform scaling of box vectors
-tau_p                   = 5.0                   ; time constant, in ps
-ref_p                   = 1.0                   ; reference pressure, in bar
-compressibility         = 4.5e-5                ; isothermal compressibility of water, bar^-1
-refcoord_scaling        = com
-; Periodic boundary conditions
-pbc                     = xyz       ; 3-D PBC
-; Velocity generation
-gen_vel                 = no        ; Velocity generation is off
-```
-
----
-
-### md.mdp — Production MD (50 ns)
-
-**Purpose:** Long unbiased production simulation. Adjust `nsteps` for different lengths.
-
-**How to use:** Save this content as `md.mdp` and run:
-```bash
-gmx grompp -f md.mdp -c npt.gro -p topol.top -t npt.cpt -o prod.tpr
-# Submit prod.tpr to instructor for cluster execution
-```
-
-```
-title                   = MD Simulation
-; Run parameters
-integrator              = md        ; leap-frog integrator
-nsteps                  = 25000000  ; 2 * 25000000 = 50000 ps (50 ns)
-dt                      = 0.002     ; 2 fs
-; Output control
-nstxout                 = 0         ; suppress bulky .trr file by specifying
-nstvout                 = 0         ; 0 for output frequency of nstxout,
-nstfout                 = 0         ; nstvout, and nstfout
-nstenergy               = 5000      ; save energies every 10.0 ps
-nstlog                  = 5000      ; update log file every 10.0 ps
-nstxout-compressed      = 5000      ; save compressed coordinates every 10.0 ps
-compressed-x-grps       = System    ; save the whole system
-; Bond parameters
-continuation            = yes       ; Restarting after NPT
-constraint_algorithm    = lincs     ; holonomic constraints
-constraints             = h-bonds   ; bonds involving H are constrained
-lincs_iter              = 1         ; accuracy of LINCS
-lincs_order             = 4         ; also related to accuracy
-; Neighborsearching
-cutoff-scheme           = Verlet    ; Buffered neighbor searching
-vdwtype                 = cutoff
-vdw-modifier            = force-switch
-ns_type                 = grid      ; search neighboring grid cells
-nstlist                 = 10        ; 20 fs, largely irrelevant with Verlet scheme
-rvdw-switch             = 1.0       ; short-range van der Waals cutoff (in nm)
-rvdw                    = 1.2
-rlist                   = 1.4
-dispcorr                = no
-; Electrostatics
-coulombtype             = PME       ; Particle Mesh Ewald for long-range electrostatics
-rcoulomb                = 1.2       ; short-range electrostatic cutoff (in nm)
-pme_order               = 4         ; cubic interpolation
-fourierspacing          = 0.16      ; grid spacing for FFT
-; Temperature coupling is on
-tcoupl                  = V-rescale             ; modified Berendsen thermostat
-tc-grps                 = System
-tau_t                   = 1.0
-ref_t                   = 298
-; Pressure coupling is on
-pcoupl                  = C-rescale
-pcoupltype              = isotropic             ; uniform scaling of box vectors
-tau_p                   = 5.0                   ; time constant, in ps
-ref_p                   = 1.0                   ; reference pressure, in bar
-compressibility         = 4.5e-5                ; isothermal compressibility of water, bar^-1
-; Periodic boundary conditions
-pbc                     = xyz       ; 3-D PBC
-; Velocity generation
-gen_vel                 = no        ; Velocity generation is off
-```
-
----
-
-### How to Customize These Templates
-
-**Change simulation length:**
-- Modify `nsteps` in any `.mdp` file
-- Duration = `nsteps × dt`
-- Example: For 200 ps → `nsteps = 100000` (since `dt = 0.002`)
-- Formula: `nsteps = (desired_time_ps / dt_ps)`
-
-**Change temperature:**
-- Modify `ref_t` in nvt.mdp, npt.mdp, and md.mdp
-- Example: `ref_t = 310` for 37°C (body temperature)
-
-**Change pressure:**
-- Modify `ref_p` in npt.mdp and md.mdp
-- Example: `ref_p = 2.0` for 2 bar pressure
-
-**Disable position restraints:**
-- Remove the line `define = -DPOSRES` from nvt.mdp and npt.mdp
-- Or ensure your `topol.top` doesn't include `posre.itp`
-
----
-
-## Part 1️⃣0️⃣: Key Differences from Lemkul Paper
+## Part 9️⃣: Key Differences from Lemkul Paper
 
 **This course simplifies the Lemkul workflow slightly:**
 
@@ -3083,7 +2824,7 @@ gen_vel                 = no        ; Velocity generation is off
 
 ********************
 
-## Part 1️⃣1️⃣: Summary & Next Steps
+## Part 1️⃣0️⃣: Summary & Next Steps
 
 ### What You Learned
 
