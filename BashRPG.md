@@ -1011,8 +1011,8 @@ If you're in `/home/user` and type `cd ./Desktop`, where do you go?
 How many files match the pattern `data_?.csv`?
 
 - [[ ]] Any number
-- [[X]] Only files like data_1.csv, data_A.csv, data_X.csv (exactly one character between underscore and dot)
-- [[ ]] Files like data_1.csv, data_12.csv, data_ABC.csv
+- [[X]] Only files like data\_1.csv, data\_A.csv, data\_X.csv (exactly one character between underscore and dot)
+- [[ ]] Files like data\_1.csv, data\_12.csv, data\_ABC.csv
 - [[ ]] Only files named exactly `data_?.csv`
 
 ---

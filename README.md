@@ -3,11 +3,11 @@
 ## Complete Module Overview
 
 **Course:** Molecular Modelling and Quantum Chemistry (Master)  
-**Instructors:** Conrad Hübler
+**Instructors:** Conrad Hübler  
 **Duration:** 3 × 90 minutes (Sessions) + Pre-Course  
 **Format:** Online with VirtualBox / OpenSUSE KDE  
-**Language:** English
-**Last Updated:** November 17, 2025
+**Language:** English  
+**Last Updated:** April 29, 2026
 
 ---
 
@@ -35,8 +35,7 @@ By the end of this module, students will be able to:
 - **Deliverable:** Students should be comfortable with terminal before Session 1
 
 ### **Session 1: Geometry Optimization** (Self-paced)
-- **Files:**
-  - `session1_geometry_optimization.md` (LiaScript)
+- **File:** `session1_geometry_optimization.md` (LiaScript)
 - **Topics:**
   - Born-Oppenheimer approximation
   - Force fields: UFF vs GFN-FF
@@ -66,7 +65,6 @@ By the end of this module, students will be able to:
   - Create publication-quality plots with Gnuplot
   - Interpret thermostat effects
 
-
 ### **Session 2B: Introduction to Gromacs** (Self-paced)
 - **File:** `session2b_gromacs_intro.md` (LiaScript)
 - **Topics:**
@@ -74,16 +72,16 @@ By the end of this module, students will be able to:
   - Workflow compiled by Lemkul J. Phys. Chem. B 2024, 128, 39, 9418–9435 (https://pubs.acs.org/doi/full/10.1021/acs.jpcb.4c04901)
   - Step-by-step MD protocol
   - MDP file parameters
-  - Your role: prepare inputs, instructor runs on cluster
+  - Student role: prepare inputs, instructor runs on cluster
 - **Workflow Steps:**
   1. Energy minimization
-  2. NVT equilibration 
-  3. NPT equilibration 
-  4. Production MD 
+  2. NVT equilibration
+  3. NPT equilibration
+  4. Production MD
   5. Analysis (energy, RMSD, flexibility)
 
-
 ### **Session 3: AlphaFold vs Molecular Dynamics** (Live + analysis)
+- **File:** `session3_alphafold_and_md.md` (LiaScript)
 - **Topics:**
   - AlphaFold2 predictions
   - Comparison with MD simulations
@@ -133,7 +131,6 @@ By the end of this module, students will be able to:
 
 ---
 
-
 ## 📚 References & Further Reading
 
 ### **Primary Literature**
@@ -156,15 +153,20 @@ By the end of this module, students will be able to:
 ### **Educational Resources**
 
 - **Frenkel, D.; Smit, B.** *Understanding Molecular Simulation*, 2nd ed. Academic Press.
-- **ChemSpider:** https://www.chemspider.com/
-- **RCSB PDB:** https://www.rcsb.org/
 
 ---
 
 ## Funding
-C. H. gratefully acknowledges TUBAFdigital for funding.
+
+The development of this course material is funded by:
+
+- TUBAFdigital
+- European Union (Erasmus+ National Agency for Higher Education)
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or Erasmus+ National Agency for Higher Education (German Academic Exchange Service). Neither the European Union nor the granting authority can be held responsible for them.
+
+![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EN%20Co-funded%20by%20the%20EU_POS.jpg)
 
 ## 📞 Contact & Support
 
 **Course Instructor:** Conrad Hübler
-

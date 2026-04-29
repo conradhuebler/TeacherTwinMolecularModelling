@@ -95,6 +95,7 @@ AlphaFold Result (Static)
 **Key insight:** **AlphaFold = Structure from sequence. MD = Dynamics of structure.** They answer different questions!
 
 **Practical use:** When you have a new protein sequence and no structure, AlphaFold is your starting point. Then MD validates and reveals how that structure behaves.
+********************
 
 **Question 2:** What does MD reveal that AlphaFold cannot?
 
@@ -135,15 +136,19 @@ AlphaFold Result (Static)
 ### Why Validate?
 
 AlphaFold is trained on known structures, but:
+
 - Proteins in solution are **dynamic**, not static
 - AlphaFold may predict a **kinetically trapped state** (not thermodynamically stable)
 - Some regions may be **artificially stable** in the training data
 - Local forces may destabilize certain folds
 
 **Validation with MD:** Run the AlphaFold structure through MD and check:
+
 - Does it stay folded (low RMSD)?
 - Does energy converge?
 - Are there large rearrangements?
+
+> **Note:** Before running MD validation, you may need to prepare your PDB file (remove metal ions, neutralize the system, etc.). See **Part 2.5️⃣** for practical PDB preparation workflows.
 
 ---
 
@@ -174,6 +179,7 @@ AlphaFold is trained on known structures, but:
 - ❌ **Nothing irrelevant:** RMSD is one of the **most important metrics** for validating predictions. A low RMSD is a positive sign.
 
 **Biological significance:** RMSD < 1 Å for small proteins/domains = **validated prediction**. AlphaFold got it right!
+********************
 
 **Question 2:** A monotonically increasing RMSD over time indicates:
 
@@ -191,18 +197,450 @@ AlphaFold is trained on known structures, but:
 - ❌ **Normal protein breathing:** "Breathing" (small fluctuations) shows up as RMSD oscillating around a mean, not monotonically increasing. Monotonic increase = structural change, not breathing.
 
 **Diagnostic guide:**
+
 - **RMSD plateaus:** ✅ Good—structure found a stable state
 - **RMSD oscillates around mean:** ✅ Good—dynamics without unfolding
 - **RMSD increases monotonically:** ⚠️ Caution—investigate further
 - **RMSD explodes (>5 Å):** ❌ Bad—unfolding or simulation artifact
 
 **Hint for analysis:** Plot RMSD vs time. If you see a monotonic increase, the protein may not be stable at that temperature with that force field. Consider:
+
 - Longer equilibration
 - Different force field
 - Check starting structure quality
 - Is the protein intrinsically disordered?
 
 **Reference:** See Part 6️⃣ (Case 3) for interpretation of large RMSD increases.
+
+********************
+
+---
+
+## Part 2.5️⃣: PDB Structure Preparation for MD — Handling Real-World Problems
+
+> **Context:** In Session 2B, you learned basic Gromacs workflows starting from clean PDB files. But real PDB structures from databases or AlphaFold often contain complications that must be addressed before running MD. This section teaches you how to identify and fix common issues.
+
+---
+
+### 2.5.1 Why PDB Preparation Matters
+
+**The problem:** Not all PDB files are MD-ready!
+
+**Common issues that break MD simulations:**
+
+- **Metal ions** (Ca²⁺, Mn²⁺, Zn²⁺, etc.) — Force fields like GFN-FF may not have parameters for them
+- **Non-standard residues** (modified amino acids, ligands) — Not recognized by `pdb2gmx`
+- **Missing atoms** (incomplete side chains, hydrogen atoms) — Cause topology errors
+- **Charged systems** — Unbalanced net charge prevents energy minimization
+- **Multiple chains** (complexes) — Require special handling for chain terminators
+- **Crystal waters or heteroatoms** (HETATM records) — May need removal or special topology
+
+**Why this matters:** If you try to run MD on an unprepared PDB, `pdb2gmx` will fail with cryptic errors like:
+
+```
+Fatal error:
+Residue 'MN' not found in residue topology database
+```
+
+**Your task:** Learn to inspect, clean, and validate PDB structures before MD setup.
+
+---
+
+### 2.5.2 Common Problems and Solutions
+
+| Problem | Symptom | Solution |
+|---------|---------|----------|
+| **Metal ions present** | `pdb2gmx` error: "MN not found" | Remove or replace with dummy atoms |
+| **HETATM records** | Unrecognized residue types | Filter to keep only ATOM lines |
+| **Net charge ≠ 0** | `genion` adds counterions | Use `gmx genion -neutral` |
+| **Missing hydrogens** | Incomplete topology | `pdb2gmx` adds hydrogens automatically ✓ |
+| **Multiple chains without TER** | Chain separation unclear | Ensure TER records between chains |
+| **Non-standard residues** | "Residue XYZ not found" | Remove, replace, or create custom topology |
+
+**Key insight:** Inspection first, cleaning second, validation third!
+
+---
+
+### 2.5.3 Inspection Workflow — Know Your Structure
+
+**Step 1: Visual Inspection in PyMOL**
+
+Start by loading the structure visually:
+
+```bash
+pymol input_structure.pdb
+```
+
+**What to check:**
+
+1. Are there metal ions? (PyMOL shows them as spheres)
+
+   - Command: `select metals, symbol MN+CA+ZN+MG+FE`
+   - If present, decide: keep (requires parameters) or remove (simplest)
+
+2. Are there ligands or cofactors?
+
+   - Command: `select ligands, resn HOH or hetatm`
+   - Ligands require topology files (advanced!)
+
+3. Are there crystal waters?
+
+   - Command: `select waters, resn HOH`
+   - Usually safe to remove for initial MD
+
+4. Multiple chains?
+
+   - Count chains: `select chain A`, `select chain B`
+   - Each chain needs TER records in PDB
+
+**Tip from Session 2B:** Use `show spheres, metals` to highlight problematic atoms.
+
+---
+
+**Step 2: Text-Based Inspection**
+
+Use command-line tools to analyze the PDB file:
+
+```bash
+# Check for metal ions (example: Manganese)
+grep " MN " input_structure.pdb
+
+# Count chains
+grep "^TER" input_structure.pdb | wc -l
+
+# List all unique residue names
+awk '{if ($1 == "ATOM" || $1 == "HETATM") print $4}' input_structure.pdb | sort -u
+
+# Check for HETATM records (non-standard atoms)
+grep "^HETATM" input_structure.pdb | head -10
+```
+
+**What you're looking for:**
+
+- If `grep " MN "` finds lines → Metal ions present
+- If unique residue list includes HOH, SO4, etc. → Heteroatoms present
+- If no TER records for multi-chain → Add them manually
+
+---
+
+**Step 3: Test with pdb2gmx**
+
+The ultimate validation: try to generate topology!
+
+```bash
+gmx pdb2gmx -f input_structure.pdb -o test.gro -p test.top
+# Select force field when prompted (e.g., AMBER99SB-ILDN)
+```
+
+**Possible outcomes:**
+
+✅ **Success:** "Successfully processed PDB file"
+→ Your structure is clean! Proceed to MD setup.
+
+❌ **Error: "Residue MN not found"**
+→ Metal ion present. Remove it (see Step 4).
+
+❌ **Error: "Residue HOH not found" or "Unknown residue"**
+→ Heteroatoms present. Clean the PDB (see Step 4).
+
+❌ **Error: "Atom CA not found in residue 42"**
+→ Missing atoms. Try `pdb2gmx` with `-missing` flag, or fix manually.
+
+**Key principle:** Let `pdb2gmx` tell you what's wrong, then fix it!
+
+---
+
+### 2.5.4 Cleaning Strategy — Remove Problematic Atoms
+
+**Strategy 1: Remove Metal Ions**
+
+If your force field doesn't support the metal (can happen with AMBER, OPLS-AA or CHARM):
+
+```bash
+# Remove Manganese ions
+grep -v " MN " input_structure.pdb > cleaned.pdb
+
+# Remove multiple metals at once
+grep -v " MN \| CA \| ZN " input_structure.pdb > cleaned.pdb
+```
+
+**Important:** `-v` means "invert match" (keep lines that DON'T match)
+
+**Biological consideration:** Removing metals is acceptable for:
+
+- Structural stability studies (if metal is not essential for fold)
+- Initial MD validation
+
+But **do NOT remove metals if:**
+
+- They're in the active site (catalytic function)
+- They stabilize the fold (structural metal)
+- Your research question requires them
+
+**Alternative:** Use a force field with metal parameters. However, this might require some literature research and more manual work. We will **not** cover this, in this course.
+
+---
+
+**Strategy 2: Keep Only Protein Atoms**
+
+Filter to retain only standard protein atoms (ATOM records):
+
+```bash
+# Keep only ATOM lines (removes HETATM, waters, ligands)
+grep "^ATOM" input_structure.pdb > protein_only.pdb
+```
+
+**What this removes:**
+
+- Waters (HOH)
+- Ligands (HETATM)
+- Cofactors (unless they're part of the protein chain)
+- Metal ions
+
+**When to use this:** Initial validation runs where you only care about protein stability.
+
+---
+
+**Strategy 3: Remove Crystal Waters Only**
+
+If you want to keep ligands but remove waters:
+
+```bash
+# Remove waters (HOH) but keep other HETATM records
+grep -v "HOH" input_structure.pdb > no_waters.pdb
+```
+
+**Why:** Waters in crystal structures are often crystal packing artifacts, not biologically relevant.
+
+---
+### 2.5.4 A Note
+
+Once you cleaned your structure, rerun `pdb2gmx` with your finally cleaned pdb file again. Check, that you use the correct pdb file.
+
+### 2.5.5 System Neutralization — Balancing Charge
+
+**The problem:** Most force fields require **neutral systems** (net charge = 0).
+
+**How to check system charge:**
+
+After running `pdb2gmx`, check the output:
+
+```
+Processing chain 1 (155 residues)
+There are 12 donors and 10 acceptors
+Total charge: -4.000 e
+```
+
+**Interpretation:**
+
+- `Total charge: 0.000 e` → System is neutral ✓
+- `Total charge: -4.000 e` → System has net -4 charge ⚠
+
+---
+
+**Solution: Add Counterions with genion**
+
+Use `gmx genion` to neutralize the system:
+
+```bash
+# Step 1: Create a simulation box (if not done yet)
+gmx editconf -f protein_only.gro -o boxed.gro -c -d 1.0 -bt cubic
+
+# Step 2: Add solvent
+gmx solvate -cp boxed.gro -cs spc216.gro -o solvated.gro -p topol.top
+
+# Step 3: Generate ions to neutralize
+gmx grompp -f ions.mdp -c solvated.gro -p topol.top -o ions.tpr  -maxwarn 1
+ 
+gmx genion -s ions.tpr -o ionized.gro -p topol.top -pname NA -nname CL -neutral
+# Select "SOL" (solvent) when prompted to replace waters with ions
+```
+
+**Key flag: `-neutral`**
+This tells `genion` to add exactly enough ions to neutralize the system.
+
+**Output:**
+
+```
+Will try to add 0 NA ions and 4 CL ions.
+Replacing 4 solvent molecules
+```
+
+**Interpretation:**
+
+- System had -4 charge → Added 4 Cl⁻ ions → Now neutral ✓
+
+**Biological note:** The system is now in a "salt bath" similar to physiological conditions. Ions screen electrostatic interactions realistically.
+
+---
+
+### 2.5.6 Validation Checklist — Before MD Submission
+
+Before you start energy minimization or MD, verify:
+
+- `pdb2gmx` runs without errors
+- `topol.top` file generated successfully
+- System is neutralized (check `genion` output: "charge now 0.000")
+- No metal ions unless force field supports them
+- No unrecognized residues (HOH, ligands removed or parameterized)
+- TER records present between chains (if multi-chain protein)
+- Visual check in PyMOL: structure looks reasonable
+
+**Final test:**
+
+```bash
+gmx grompp -f em.mdp -c ionized.gro -p topol.top -o em.tpr
+```
+
+- ✅ **"grompp: successful"** → Ready for MD!
+- ❌ **Errors** → Go back and fix issues.
+
+---
+
+### 2.5.7 Quiz: PDB Preparation
+
+**Question 1:** You run `gmx pdb2gmx` and get the error: 
+
+```
+Fatal error: Residue 'MN' not found in residue topology database
+``` 
+
+What does this mean, and what should you do?
+
+- [[ ]] The PDB file is corrupted
+- [[X]] The structure contains a metal ion (Manganese) that your force field doesn't support; remove it or use a different force field
+- [[ ]] The protein is misfolded
+- [[ ]] You need to install a plugin
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** The error message is explicit: `pdb2gmx` encountered a residue named "MN" (Manganese, a metal ion) that isn't defined in your chosen force field's residue topology database. Metal ions require special force field parameters (partial charges, van der Waals radii, bonding rules). If your force field (e.g., AMBER99SB, OPLS-AA) doesn't include metal parameters, you have two options:
+
+  1. **Remove the metal ion:** `grep -v " MN " input.pdb > cleaned.pdb` (simplest, acceptable if metal isn't essential)
+  2. **Use a force field with metal support:** Check the available force fields in GROAMCS or, which is advanced, check the literature and add the parameters manually.
+- ❌ **PDB file is corrupted:** No—the file is valid. It's just that the force field doesn't recognize metals.
+- ❌ **Protein is misfolded:** The error is about residue recognition, not structure quality.
+- ❌ **Install a plugin:** There's no "metal plugin" for Gromacs. You need force field parameters.
+
+**Key insight:** `pdb2gmx` errors tell you exactly what's missing. Read the error message carefully!
+
+**Practical workflow:**
+
+- 1. Inspect: `grep " MN " input.pdb` (find the metal)
+- 2. Decide: Is the metal essential? (Check literature, structure)
+- 3. Clean: If not essential, remove it with `grep -v`
+- 4. Re-run: `gmx pdb2gmx` should now succeed ✓
+
+**Biological context:** Many proteins bind metals (enzymes, structural proteins). Removing them is a simplification. For research on metalloproteins, you MUST keep the metal and use appropriate parameters!
+
+**Reference:** See Section 2.5.4 (Cleaning Strategy) for detailed commands.
+
+********************
+
+**Question 2:** After running `pdb2gmx`, the output says `Total charge: -4.000 e`. You then run `gmx genion -neutral`. What will genion do?
+
+- [[ ]] Add 4 CL⁻ ions to neutralize
+- [[X]] Add 4 NA⁺ ions to neutralize
+- [[ ]] Remove 4 atoms from the system
+- [[ ]] Do nothing, system is already neutral
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** The system has a net **-4 charge** (4 more negative charges than positive). To neutralize, you need to add **+4 positive charge**. `genion -neutral` will add **4 sodium ions (NA⁺)**, each with +1 charge:
+  - Initial: -4 e
+  - Add 4 NA⁺: -4 + 4×(+1) = 0 e ✓
+  - System is now neutral!
+
+The genion output will say: **"Will try to add 4 NA ions and 0 CL ions"**
+
+Each sodium ion replaces a water molecule in the solvated system. This creates a realistic ionic environment (like physiological salt concentration).
+
+- ❌ **Add 4 CL⁻ ions:** No! That would make the system MORE negative (-4 -4 = -8). You need positive ions.
+- ❌ **Remove 4 atoms:** `genion` doesn't remove protein atoms. It adds ions by replacing solvent molecules.
+- ❌ **Do nothing:** The system is NOT neutral (-4 ≠ 0). `genion -neutral` will act.
+
+**Key insight:**
+
+- Negative system charge → Add positive ions (NA⁺)
+- Positive system charge → Add negative ions (CL⁻)
+- The `-neutral` flag does this automatically!
+
+**Biological context:** Proteins have charged residues (Asp/Glu negative, Lys/Arg positive). The net charge depends on which residues dominate. Most proteins in solution are surrounded by ions (salt) that screen these charges. `genion` mimics this physiological ionic strength!
+
+**Practical tip:** Always check genion output to confirm neutralization:
+
+```
+Will try to add 4 NA ions and 0 CL ions.
+... Replacing 4 solvent molecules
+System charge: 0.000 e ✓
+```
+
+**Reference:** See Section 2.5.5 (System Neutralization) for the full workflow.
+
+********************
+
+**Question 3:** You want to remove all HETATM records (waters, ligands, etc.) from a PDB file, keeping only the protein. Which command does this?
+
+- [[ ]] `grep "HETATM" input.pdb > protein_only.pdb`
+- [[X]] `grep "^ATOM" input.pdb > protein_only.pdb`
+- [[ ]] `awk '{print $1}' input.pdb > protein_only.pdb`
+- [[ ]] `sed 's/HETATM/ATOM/g' input.pdb > protein_only.pdb`
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** `grep "^ATOM"` matches lines that start with "ATOM" (the `^` means "start of line"). PDB files have two main record types:
+  - **ATOM:** Standard protein/nucleic acid atoms
+  - **HETATM:** Heteroatoms (waters, ligands, metals, etc.)
+
+By selecting only lines starting with "ATOM", you keep the protein and discard everything else. This is the standard way to extract pure protein structure!
+
+- ❌ **`grep "HETATM"`:** This would KEEP hetatoms and DISCARD protein (opposite of what you want!)
+- ❌ **`awk '{print $1}'`:** This prints only the first column (ATOM, HETATM, TER, etc.)—not the full lines. You'd lose all coordinate data!
+- ❌ **`sed 's/HETATM/ATOM/g'`:** This RENAMES hetatoms to ATOM, but doesn't remove them. `pdb2gmx` would still fail because it doesn't recognize the residue names (HOH, SO4, etc.), even if the record type says "ATOM".
+
+**Key insight:** PDB format has specific record types. Use `grep "^ATOM"` to filter by record type!
+
+**PDB format reminder:**
+
+```
+ATOM      1  N   MET A   1      10.123  20.456  30.789  1.00 50.00           N
+HETATM  999  O   HOH A 200      15.234  25.678  35.901  1.00 40.00           O
+```
+- Column 1: Record type (ATOM or HETATM)
+- Columns 2-11: Atom data (number, name, residue, coordinates)
+
+**Practical workflow:**
+
+```bash
+# 1. Check how many ATOM vs HETATM records
+grep "^ATOM" input.pdb | wc -l    # e.g., 1234 protein atoms
+grep "^HETATM" input.pdb | wc -l  # e.g., 456 waters/ligands
+
+# 2. Extract protein only
+grep "^ATOM" input.pdb > protein_only.pdb
+
+# 3. Verify
+head protein_only.pdb  # All lines should start with "ATOM"
+```
+
+**When to use this:**
+
+- Initial MD validation (protein stability only)
+- When ligand topology is unavailable
+- When you don't care about cofactors (first-pass simulation)
+
+**When NOT to use this:**
+
+- If ligands are essential for function (enzyme active site)
+- If metal ions stabilize the fold
+- If you're studying protein-ligand binding!
+
+**Reference:** See Section 2.5.4 (Cleaning Strategy) for more filtering examples.
+
+**Connection to Session 2B:** In Session 2B, you worked with pre-cleaned PDB files. Now you know how to clean them yourself from raw database downloads!
 
 ********************
 
@@ -215,6 +653,7 @@ AlphaFold is trained on known structures, but:
 **What it shows:** System equilibration and stability
 
 **How to extract:**
+
 ```bash
 gmx energy -f prod.edr -o energy.xvg
 # Select "Total Energy" when prompted
@@ -234,6 +673,7 @@ gmx energy -f prod.edr -o energy.xvg
 **What it shows:** How much the structure changed from AlphaFold input
 
 **How to extract:**
+
 ```bash
 gmx rms -f prod.xtc -s prod.tpr -o rmsd.xvg
 # Select backbone C-alpha for protein
@@ -254,6 +694,7 @@ gmx rms -f prod.xtc -s prod.tpr -o rmsd.xvg
 **What it shows:** Which parts of the protein move most
 
 **How to extract:**
+
 ```bash
 gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 # Gives flexibility for each residue
@@ -270,6 +711,8 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 - Secondary structure (α-helix, β-sheet): Usually low RMSF
 - Loops connecting secondary structures: Usually high RMSF
 - Binding sites: Often have intermediate RMSF (flexible for function)
+
+> **Advanced:** If you have multiple MD trajectories (e.g., different force fields, wild-type vs. mutant), see **Part 3.75️⃣** for systematic comparison methods.
 
 ### ✅ Quick Check 3: Analysis Methods
 
@@ -291,6 +734,7 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 **Formula hint:** RMSF(residue i) = √[mean(displacement²)] where displacement is measured from the residue's average position.
 
 **Practical:** When you plot RMSF vs residue number, you get a **flexibility profile** of your protein.
+********************
 
 **Question 2:** If a region has consistently high RMSF, it probably is:
 
@@ -303,11 +747,13 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 **Explanation:**
 
 - ✅ **Correct:** **High RMSF = flexible region.** This is often:
+
   - **Loops** connecting secondary structures (expected to be flexible)
   - **Termini** (N- and C-termini are usually disordered in solution)
   - **Hinges** between domains (allow conformational change)
   - **Active sites** (flexibility allows substrate binding/catalysis)
   - Functionally important for dynamics and regulation
+  
 - ❌ **Incorrectly folded:** High RMSF doesn't mean wrong—it means dynamic! Many functional sites are flexible.
 - ❌ **Unfolding:** Unfolding looks like **monotonic increase in RMSD**, not high RMSF. High RMSF is stable motion, not denaturation.
 - ❌ **Simulation error:** High RMSF is normal and expected. Some regions *should* be flexible. It only becomes an error if RMSF is unreasonably high (>10 Å for a 300 K simulation) or if the entire protein has high RMSF uniformly.
@@ -322,6 +768,7 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 | > 5 Å | Potentially unstructured region | Caution—check if real or artifact |
 
 **Practical insight:** When comparing AlphaFold and MD:
+
 - **AlphaFold confidence (pLDDT high) BUT MD shows high RMSF?** → Region is functionally flexible despite being confidently predicted. This is valuable information!
 - **AlphaFold low confidence (pLDDT < 50) AND MD shows high RMSF?** → Agreement between methods. Region is intrinsically disordered.
 
@@ -336,6 +783,7 @@ gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res
 ## Part 3.5️⃣: Applying PyMOL to MD Trajectory Analysis
 
 > **Reminder:** In Session 2B, you learned comprehensive PyMOL basics:
+
 > - Loading PDB files and navigation (rotate, zoom, pan)
 > - Display modes (cartoon, sticks, surface)
 > - Coloring by properties (by chain, secondary structure, B-factor/pLDDT)
@@ -365,11 +813,13 @@ pymol md_trajectory.pdb
 ```
 
 **Animation controls:**
+
 - Use **slider at bottom** to navigate frames (left-right arrow to step through)
 - **Play button** to animate continuously
 - Watch your protein move in real time!
 
 **What to observe:**
+
 - Which regions are flexible (visibly moving)?
 - Which are rigid (staying in place)?
 - Do secondary structures persist throughout the simulation?
@@ -394,16 +844,19 @@ pymol md_trajectory.pdb
    ```
 
 3. Navigate the trajectory:
+
    - Use the slider at the bottom to step through frames
    - Watch: Which atoms move most?
    - Notice: Do loops move differently than helices?
 
 4. Compare with your RMSF analysis:
+
    - High RMSF residues = visible motion in animation ✓
    - Low RMSF residues = mostly static in animation ✓
    - Does the animation agree with your numbers?
 
 5. Create a movie (optional):
+
    ```
    mclear              # Clear previous frames
    mset 1 x100         # Create sequence of frames
@@ -465,6 +918,7 @@ This superimposes the structures to compare them directly.
 - **Different color patterns:** Interesting! Maybe the prediction was uncertain but stable, or vice versa
 
 **Biological interpretation:**
+
 - **pLDDT high (blue) AND structures overlap:** ✓ Confidently predicted and stable
 - **pLDDT low (red) AND structures differ:** ✓ Uncertain prediction that moved significantly
 - **pLDDT high BUT structures differ:** ⚠ Interesting! Maybe functionally important flexible region
@@ -477,12 +931,14 @@ This superimposes the structures to compare them directly.
 Once you've calculated RMSF from your MD trajectory, you can color the structure by this data to visualize flexibility directly.
 
 **Workflow:**
+
 1. Calculate RMSF from trajectory: `gmx rmsf -f prod.xtc -s prod.tpr -o rmsf.xvg -res`
 2. Convert RMSF values to B-factors (requires scripting or manual conversion)
 3. Load structure with RMSF as B-factor
 4. Color by B-factor using `spectrum b` (just like you did for pLDDT!)
 
 **Result:** Structure colored by flexibility:
+
 - **Blue:** Rigid regions (low RMSF, < 1 Å)
 - **Red:** Flexible regions (high RMSF, > 3 Å)
 
@@ -503,6 +959,7 @@ png md_frame_5.png         # Save specific frame
 ```
 
 **Example figures:**
+
 1. **AlphaFold structure** (colored by pLDDT confidence)
 2. **Final MD frame** (same region, colored to match pLDDT scale for comparison)
 3. **Overlay** showing RMSD differences
@@ -549,6 +1006,569 @@ png md_frame_5.png         # Save specific frame
 **Example:** The protein's active site (one region) might have moved significantly (visually obvious), while the rest stayed rigid. RMSD averages this out, but visualization reveals which parts are dynamically important.
 
 **Insight:** This is exactly why you create figures for your presentation—visualization reveals spatial patterns that average numbers alone cannot show!
+
+---
+
+## Part 3.75️⃣: Comparing Two Trajectories — Systematic Multi-Simulation Analysis
+
+> **Context:** You've learned to analyze a single MD trajectory. But what if you run two simulations with different parameters, or compare wild-type vs. mutant, or test different force fields? This section teaches you how to systematically compare two (or more) trajectories to extract meaningful differences.
+
+---
+
+### 3.75.1 When to Compare Trajectories
+
+**Scenarios requiring trajectory comparison:**
+
+1. **Different force fields**
+
+   - CHARM vs. AMBER99SB: Which predicts more stable dynamics?
+   - Use case: Validating force field choice
+
+2. **Wild-type vs. mutant**
+
+   - WT protein vs. single-point mutation (e.g., D42A)
+   - Use case: Understanding mutation effects on stability/flexibility
+
+3. **Different starting structures**
+
+   - AlphaFold model vs. crystal structure (X-ray/cryo-EM)
+   - Use case: Testing if different inputs converge to same dynamics
+
+4. **Parameter variations**
+
+   - 300 K vs. 310 K temperature
+   - Different salt concentrations
+   - Use case: Sensitivity analysis
+
+5. **Reproducibility check**
+
+   - Two identical setups with different random seeds
+   - Use case: Ensuring results aren't random artifacts
+
+**Key question:** Do the trajectories converge to similar behavior, or do they differ significantly? If different, why?
+
+---
+
+### 3.75.2 Parallel RMSD Analysis — Do Both Simulations Stabilize?
+
+**Goal:** Compare how each trajectory deviates from its starting structure over time.
+
+**Workflow:**
+
+```bash
+# Simulation A: RMSD vs. starting structure
+gmx rms -f traj_A.xtc -s ref_A.tpr -o rmsd_A.xvg
+# When prompted, select "C-alpha" for protein
+
+# Simulation B: RMSD vs. starting structure
+gmx rms -f traj_B.xtc -s ref_B.tpr -o rmsd_B.xvg
+# Select same group (C-alpha)
+
+# Extract data for plotting
+grep -v "^@\|^#" rmsd_A.xvg > rmsd_A_clean.txt
+grep -v "^@\|^#" rmsd_B.xvg > rmsd_B_clean.txt
+```
+
+**Plotting both together (Gnuplot):**
+
+```gnuplot
+set terminal png size 800,600
+set output 'rmsd_comparison.png'
+set title 'RMSD Comparison: Trajectory A vs B'
+set xlabel 'Time (ps)'
+set ylabel 'RMSD (Angstrom)'
+set grid
+plot 'rmsd_A_clean.txt' u 1:2 w l lw 2 title 'Trajectory A', \
+     'rmsd_B_clean.txt' u 1:2 w l lw 2 title 'Trajectory B'
+```
+
+**Interpretation patterns:**
+
+| Observation | Interpretation |
+|-------------|----------------|
+| **Both RMSD < 2 Å, similar curves** | Both simulations stable; reproducible results ✓ |
+| **Both RMSD high (> 3 Å), similar curves** | Both show instability; consistent but concerning ⚠ |
+| **A stable (< 2 Å), B unstable (> 3 Å)** | Different outcomes; investigate parameter differences |
+| **A and B converge after initial divergence** | Different equilibration paths, same final state ✓ |
+| **A and B diverge over time** | Sampling different conformations; may be biological! |
+
+**Key insight:** Similar RMSD patterns = reproducible dynamics. Different patterns = parameter-dependent behavior (investigate why!).
+
+---
+
+### 3.75.3 Parallel RMSF Analysis — Which Regions Differ in Flexibility?
+
+**Goal:** Compare per-residue flexibility between two simulations.
+
+**Workflow:**
+
+```bash
+# Calculate RMSF for both trajectories
+gmx rmsf -f traj_A.xtc -s ref_A.tpr -o rmsf_A.xvg -res
+gmx rmsf -f traj_B.xtc -s ref_B.tpr -o rmsf_B.xvg -res
+
+# Extract and align data
+grep -v "^@\|^#" rmsf_A.xvg | awk '{print $1, $2}' > rmsf_A_clean.txt
+grep -v "^@\|^#" rmsf_B.xvg | awk '{print $1, $2}' > rmsf_B_clean.txt
+
+# Merge data for side-by-side comparison
+paste rmsf_A_clean.txt rmsf_B_clean.txt > rmsf_combined.txt
+# Format: residue_A RMSF_A residue_B RMSF_B
+```
+
+**Plotting RMSF comparison:**
+
+```gnuplot
+set terminal png size 1200,600
+set output 'rmsf_comparison.png'
+set title 'Per-Residue Flexibility: Trajectory A vs B'
+set xlabel 'Residue Number'
+set ylabel 'RMSF (Angstrom)'
+set grid
+plot 'rmsf_A_clean.txt' u 1:2 w l lw 2 title 'Trajectory A', \
+     'rmsf_B_clean.txt' u 1:2 w l lw 2 title 'Trajectory B'
+```
+
+**Interpretation patterns:**
+
+| Observation | Biological Meaning |
+|-------------|-------------------|
+| **RMSF curves overlap closely** | Both simulations agree on flexibility; robust result ✓ |
+| **Similar peaks, different heights** | Same regions flexible, but magnitude differs (FF-dependent) |
+| **A shows peak where B doesn't** | Trajectory A sampled motion B didn't (longer simulation needed?) |
+| **B more flexible everywhere** | Higher temperature? Different FF? Check parameters! |
+| **Core regions match, loops differ** | Core dynamics robust; loop flexibility sensitive to conditions |
+
+**Difference plot (advanced):**
+
+Calculate ΔRMSF = RMSF_B - RMSF_A for each residue:
+
+```bash
+# Create difference file
+awk '{print $1, ($4 - $2)}' rmsf_combined.txt > rmsf_difference.txt
+
+# Plot differences
+gnuplot <<EOF
+set terminal png size 1200,600
+set output 'rmsf_difference.png'
+set title 'RMSF Difference: B minus A'
+set xlabel 'Residue Number'
+set ylabel 'ΔRMSF (Angstrom)'
+set grid
+set yrange [-2:2]
+set arrow from 0,0 to 200,0 nohead lc rgb "black" lw 1
+plot 'rmsf_difference.txt' u 1:2 w l lw 2 lc rgb "red" title 'B - A'
+EOF
+```
+
+**Interpretation:**
+
+- **Positive values (red above zero):** Residue more flexible in B than A
+- **Negative values (red below zero):** Residue more rigid in B than A
+- **Near-zero:** No difference (robust!)
+
+**Biological questions answered:**
+
+- Does mutation increase flexibility at specific sites?
+- Are certain force fields more permissive for loop motion?
+- Do temperature differences propagate to specific regions?
+
+---
+
+### 3.75.4 Visual Comparison in PyMOL — Overlaying Final Structures
+
+**Goal:** Visually inspect structural differences between final MD frames.
+
+**Step 1: Extract final frames**
+
+```bash
+# Extract last frame from trajectory A
+gmx trjconv -f traj_A.xtc -s ref_A.tpr -o final_A.pdb -dump 500
+# (500 ps = last frame for 500 ps simulation)
+
+# Extract last frame from trajectory B
+gmx trjconv -f traj_B.xtc -s ref_B.tpr -o final_B.pdb -dump 500
+```
+
+**Step 2: Load both in PyMOL**
+
+```bash
+pymol final_A.pdb final_B.pdb
+```
+
+**Step 3: Align and compare**
+
+```
+# Align B onto A
+align final_B, final_A
+
+# Color differently for visual distinction
+color blue, final_A
+color red, final_B
+
+# Display as cartoon
+show cartoon, all
+hide lines, all
+
+# Inspect differences
+zoom
+
+# Calculate RMSD in PyMOL
+rms_cur final_A, final_B
+```
+
+**Step 4: Highlight differences**
+
+If certain regions moved significantly:
+
+```
+# Select core (conserved regions)
+select core, resi 10-50
+
+# Select flexible region (e.g., loop)
+select loop, resi 60-70
+
+# Show differences in flexible regions
+show sticks, loop
+```
+
+**Interpretation:**
+
+| Visual Observation | Meaning |
+|--------------------|---------|
+| **Structures overlay perfectly** | Low RMSD; both simulations converged to same structure ✓ |
+| **Core overlays, termini differ** | Expected—termini are intrinsically disordered |
+| **One helix shifted position** | Conformational difference; check RMSF for that region |
+| **Entire structure rotated** | Alignment issue (not biological); re-align on core residues only |
+| **Loop regions differ significantly** | Loops sample different conformations (normal unless functional!) |
+
+**Creating publication figure:**
+
+```
+# Set white background
+bg_color white
+
+# High-quality rendering
+set ray_trace_mode, 1
+ray 1200, 800
+
+# Save overlay figure
+png trajectory_overlay.png
+```
+
+---
+
+### 3.75.5 Interpreting Differences — Four Common Cases
+
+**Case 1: Convergent Trajectories**
+
+**Observation:**
+
+- RMSD similar (both < 2 Å)
+- RMSF patterns match
+- Final structures overlay well (< 1 Å RMSD between them)
+
+**Interpretation:**
+
+- ✅ **Reproducible dynamics!** Both simulations converged to the same behavior.
+- System is robust to parameter variations (good sign!)
+- Results are trustworthy for biological interpretation
+
+**Example:** Two identical simulations with different random seeds → same outcome = validated!
+
+---
+
+**Case 2: Parameter-Dependent Behavior**
+
+**Observation:**
+
+- Trajectory A stable (RMSD < 2 Å), B unstable (RMSD > 4 Å)
+- Different RMSF patterns
+- Final structures differ significantly (> 3 Å RMSD)
+
+**Interpretation:**
+
+- ⚠️ **Results depend on parameters** (force field, temperature, etc.)
+- Need to determine which simulation is more realistic
+- Compare to experiments (NMR, cryo-EM) if available
+- Test additional parameters to find robust regime
+
+**Example:** GFN-FF shows unfolding, AMBER99SB stable → Force field matters! Use experimental data to decide.
+
+---
+
+**Case 3: Core Robust, Periphery Differs**
+
+**Observation:**
+
+- RMSD similar overall
+- RMSF matches for core residues (secondary structure)
+- RMSF differs for loops/termini
+
+**Interpretation:**
+
+- ✅ **Core structure is robust** (validated!)
+- ⚠️ **Loop flexibility is force-field or parameter-dependent**
+- This is common and expected—loops are sensitive to local interactions
+- Focus on core for structural conclusions; be cautious about loop dynamics
+
+**Example:** α-helix rigidity matches between FF, but loop 30-40 shows different flexibility → Core trustworthy, loops less certain.
+
+---
+
+**Case 4: Biologically Relevant Differences**
+
+**Observation:**
+
+- Wild-type stable, mutant shows increased flexibility at mutation site
+- Mutant RMSF higher specifically near mutation (e.g., residues 40-45)
+- Visual overlay shows local conformational change
+
+**Interpretation:**
+
+- ✅ **Mutation has structural consequences!** (biological discovery)
+- Increased flexibility might affect:
+
+  - Binding affinity (flexible site can't bind tightly)
+  - Enzymatic activity (active site distorted)
+  - Protein stability (local unfolding)
+- This is the type of result you report in research!
+
+**Example:** D42A mutation in enzyme → Active site loop becomes more flexible → Explains reduced catalytic efficiency!
+
+---
+
+### 3.75.6 Statistical Tools — Quantifying Differences
+
+**Tool 1: RMSD Between Final Frames**
+
+Calculate the structural difference between the endpoints of two trajectories:
+
+```bash
+# Superimpose final frames and calculate RMSD
+gmx rms -f final_A.pdb -s final_B.pdb -o rmsd_final_comparison.xvg
+```
+
+**Interpretation:**
+
+- < 1 Å: Essentially identical final structures
+- 1-2 Å: Similar structures (minor differences)
+- 2-4 Å: Moderate differences (investigate regions)
+- > 4 Å: Very different outcomes (parameter-dependent!)
+
+---
+
+**Tool 2: RMSF Correlation**
+
+Quantify how well RMSF patterns match:
+
+```bash
+# Calculate correlation coefficient (requires scripting)
+# Python example:
+import numpy as np
+from scipy.stats import pearsonr
+
+rmsf_A = np.loadtxt('rmsf_A_clean.txt', usecols=1)
+rmsf_B = np.loadtxt('rmsf_B_clean.txt', usecols=1)
+
+correlation, p_value = pearsonr(rmsf_A, rmsf_B)
+print(f"RMSF correlation: {correlation:.3f} (p={p_value:.4f})")
+```
+
+**Interpretation:**
+
+- **r > 0.9:** Strong agreement (robust flexibility patterns)
+- **r = 0.7–0.9:** Moderate agreement (mostly similar)
+- **r < 0.7:** Weak agreement (parameter-dependent flexibility)
+
+---
+
+**Tool 3: Time-Resolved RMSD Between Trajectories**
+
+Compare structures at each time point:
+
+```bash
+# This requires both trajectories aligned to a common reference
+# Advanced: requires trajectory concatenation or custom scripting
+
+# Conceptual approach:
+# 1. Align both trajectories to the same starting structure
+# 2. For each frame i, calculate RMSD between traj_A[i] and traj_B[i]
+# 3. Plot RMSD_AB vs time
+```
+
+**Interpretation:**
+
+- **Low RMSD_AB throughout:** Trajectories stay similar (synchronized dynamics)
+- **Increasing RMSD_AB over time:** Trajectories diverge (different conformational sampling)
+- **Oscillating RMSD_AB:** Trajectories visit similar states at different times (phase shift)
+
+---
+
+**Tool 4: Clustering Comparison**
+
+Perform clustering on both trajectories and compare cluster populations:
+
+```bash
+gmx cluster -f traj_A.xtc -s ref_A.tpr -cl clusters_A.pdb -o rmsd-clust_A.xvg
+gmx cluster -f traj_B.xtc -s ref_B.tpr -cl clusters_B.pdb -o rmsd-clust_B.xvg
+```
+
+**Interpretation:**
+- **Similar number of clusters:** Both sample similar conformational space
+- **A has 1 cluster, B has 3:** B explores more states (higher flexibility)
+- **Different cluster populations:** Parameter-dependent conformational preferences
+
+---
+
+### 3.75.7 Quiz: Trajectory Comparison
+
+**Question 1:** You compare two MD trajectories: one with GFN-FF force field (Trajectory A) and one with AMBER99SB (Trajectory B). The RMSD curves are similar (both ~1.5 Å), but the RMSF plot shows:
+- Core regions (residues 10-80): RMSF matches closely
+- Loop region (residues 90-100): Trajectory A has RMSF ~3 Å, Trajectory B has RMSF ~1 Å
+
+What does this suggest?
+
+- [[ ]] One of the simulations is wrong
+- [[X]] The core structure is robust across force fields, but loop flexibility is force-field sensitive
+- [[ ]] The simulations are identical
+- [[ ]] AMBER99SB is always better than GFN-FF
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** This is a **very common and important observation!** It shows:
+  - **Core robustness:** Both force fields agree on the rigidity of the core (secondary structure, hydrophobic interior). This validates the structural prediction in that region—it's not an artifact of one specific force field.
+  - **Loop sensitivity:** Loop regions (connecting secondary structures) are more flexible and their dynamics depend on local force field details (hydrogen bonding parameters, torsional potentials, etc.). GFN-FF allows more loop motion; AMBER99SB constrains it more.
+  - **Biological interpretation:** For structural conclusions (e.g., "the core is stable"), you can trust both force fields. For loop dynamics (e.g., "this loop is flexible for binding"), you should be cautious—experimental validation (NMR, HDX-MS) is needed.
+
+- ❌ **One simulation is wrong:** No! Both can be partially correct. Force fields are approximations. Agreement in the core = validated. Disagreement in loops = parameter-dependent (not "wrong").
+- ❌ **Simulations are identical:** No—they differ in loop flexibility. This is meaningful!
+- ❌ **AMBER99SB always better:** Not necessarily! AMBER99SB is parameterized for proteins, GFN-FF is more general. For loops, you'd need experimental data to decide which is more realistic.
+
+**Key insight:** **Core agreement + loop disagreement = typical force field comparison.** Use agreement to validate structure; acknowledge disagreement as uncertainty!
+
+**Practical advice:**
+- Report: "Core structure robust across force fields (validated)"
+- Report: "Loop 90-100 flexibility force-field dependent (requires experimental validation)"
+- Don't claim: "AMBER is right, GFN-FF is wrong" without experiments!
+
+**Biological relevance:** If that loop is functionally important (binding site, active site), you MUST validate its dynamics experimentally. If it's peripheral, the core's robustness is more important.
+
+**Reference:** See Part 3.75.5 (Case 3: Core Robust, Periphery Differs) for this exact scenario.
+
+********************
+
+**Question 2:** You run two identical MD simulations (same force field, same temperature, same protein) but with different random seeds for initial velocities. Both show RMSD ~1.2 Å, similar RMSF patterns, and final structures overlay with 0.8 Å RMSD. What does this indicate?
+
+- [[ ]] You made a mistake; they should be different
+- [[X]] The results are reproducible; the protein's dynamics are robust to initial conditions
+- [[ ]] The random seed doesn't matter
+- [[ ]] You need to run more simulations
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** **This is excellent news!** It demonstrates **reproducibility**—the gold standard in computational science. Here's why it matters:
+  - **Robust dynamics:** The protein's motion isn't dominated by random thermal noise. Instead, it has **intrinsic dynamical preferences** (energy landscape) that guide it to the same behavior regardless of initial conditions.
+  - **Validated results:** You can confidently present your RMSD, RMSF, and structural conclusions knowing they're not random artifacts. If a reviewer asks "Is this just noise?", you can say "No—we ran replicates with different seeds and got the same result!"
+  - **Sufficient sampling:** The simulation time was long enough for the system to equilibrate and sample its accessible conformational space consistently.
+
+- ❌ **You made a mistake:** No! Reproducibility is the GOAL, not a mistake. Different seeds + same result = robust science!
+- ❌ **Random seed doesn't matter:** It DOES matter for initial conditions (velocities, momenta), but if the dynamics are robust, the system converges to the same behavior. That's the insight here!
+- ❌ **Need more simulations:** You could always run more (science loves replication!), but two identical replicates already show reproducibility. Additional runs would further strengthen confidence, but aren't strictly required.
+
+**Statistical interpretation:** If you ran N replicates and all show similar results (RMSD within error bars, RMSF correlation > 0.9), you have **statistical confidence** in your conclusions.
+
+**What if they WERE different?** If two identical setups gave very different results (e.g., one stable, one unfolding), that would indicate:
+
+- **Insufficient sampling:** Simulation too short to equilibrate
+- **Multiple stable states:** Protein can adopt different conformations (biologically interesting!)
+- **Numerical instability:** Check integration timestep, constraints
+
+**Best practice:** Always run at least **2-3 replicates** with different random seeds to test reproducibility. Report all of them (not just the "best" one)!
+
+**Presentation tip:** Show both RMSD curves in your talk with a caption: "Two independent replicates with different random seeds show identical dynamics, confirming reproducibility."
+
+**Reference:** See Part 3.75.1 (Scenario 5: Reproducibility check) for when to use this approach.
+
+**Biological context:** If your dynamics are reproducible, you can confidently relate them to biological function. If they're not, you're seeing either artifacts or rare events (both require investigation!).
+
+********************
+
+**Question 3:** In PyMOL, you load the final frames from two MD trajectories (Wild-Type and D42A mutant), align them with `align mutant, wild_type`, and visually inspect. The core structures overlap well, but residues 40-50 (near the mutation site) show a visible shift in the mutant. What should you do next?
+
+- [[ ]] Conclude the simulation failed
+- [[ ]] Ignore it; visual differences don't matter
+- [[X]] Calculate RMSF for residues 40-50 in both trajectories to quantify the flexibility change; interpret biological significance
+- [[ ]] Re-run the simulation until they match
+********************
+
+**Explanation:**
+
+- ✅ **Correct:** **This is exactly the right scientific approach!** Here's the workflow:
+
+  **Step 1: Visual observation**
+  - You noticed a structural difference near the mutation site (residues 40-50)
+  - This is a hypothesis-generating observation: "Mutation affects local structure"
+
+  **Step 2: Quantitative analysis**
+  - Calculate RMSF for both WT and mutant in that region:
+    ```bash
+    gmx rmsf -f wt_traj.xtc -s wt.tpr -o rmsf_wt.xvg -res
+    gmx rmsf -f mutant_traj.xtc -s mutant.tpr -o rmsf_mutant.xvg -res
+    ```
+  - Extract residues 40-50 and compare:
+    ```bash
+    grep "^[[:space:]]*4[0-9]" rmsf_wt.xvg > rmsf_wt_region.txt
+    grep "^[[:space:]]*5[0-0]" rmsf_wt.xvg >> rmsf_wt_region.txt
+    # Repeat for mutant
+    ```
+  - Plot: Does mutant show higher RMSF in this region?
+
+  **Step 3: Biological interpretation**
+  - **If mutant RMSF higher:** "D42A mutation increases local flexibility in residues 40-50, potentially affecting [function, binding, stability]"
+  - **If mutant RMSF similar:** "Visual difference is conformational (different snapshot), not dynamic (flexibility unchanged)"
+  - **If mutant RMSF lower:** "D42A mutation stabilizes residues 40-50 (interesting—investigate why!)"
+
+  **Step 4: Connect to biology**
+  - Is residue 42 in the active site? → Flexibility change might affect catalysis
+  - Is it at a domain interface? → Might affect allosteric communication
+  - Is it on the surface? → Might affect protein-protein interactions
+  - Check literature: Is D42 known to be functionally important?
+
+- ❌ **Simulation failed:** No! Observing a difference near a mutation site is EXPECTED, not a failure. Mutations change structure/dynamics—that's biology!
+- ❌ **Ignore visual differences:** Never ignore observations! Visual differences are data. Quantify them (RMSF, RMSD) and interpret them.
+- ❌ **Re-run until they match:** You WANT them to differ if the mutation has an effect! Matching would mean the mutation doesn't matter (possible, but needs to be determined by analysis, not forced).
+
+**Why this matters:** This is how computational biology generates hypotheses for experiments:
+- **Observation:** Mutation changes local structure
+- **Quantification:** RMSF increased by 1.5 Å in region 40-50
+- **Hypothesis:** "D42A destabilizes the active site loop"
+- **Experiment:** Test binding affinity, enzymatic activity, or stability (DSC, NMR)
+
+**Presentation strategy:**
+1. Show PyMOL overlay: "Visual inspection reveals structural shift near mutation"
+2. Show RMSF comparison plot: "Quantitative analysis confirms increased flexibility"
+3. Biological interpretation: "This may explain reduced catalytic efficiency observed in experiments [cite reference]"
+
+**Key principle:** **Observations → Quantification → Interpretation → Hypothesis**. Never stop at visual inspection!
+
+**Reference:** See Part 3.75.4 (Visual Comparison) and Part 3.75.5 (Case 4: Biologically Relevant Differences) for detailed workflows.
+
+**Advanced follow-up:** You could also:
+- Calculate hydrogen bond occupancy in that region (did mutation break a stabilizing H-bond?)
+- Perform energy decomposition (is the mutant region energetically less favorable?)
+- Check secondary structure evolution (did a helix partially unfold?)
+
+**Biological examples where this approach worked:**
+- Mutation in kinase hinge region → increased flexibility → reduced ATP binding
+- Cancer-associated mutation → destabilized interface → loss of dimerization
+- Drug-resistance mutation → flexible binding pocket → drug can't bind
+
+**Takeaway:** Visual differences are hypotheses. Quantitative analysis tests them. Biological interpretation explains them!
+
+********************
 
 ---
 
@@ -903,6 +1923,52 @@ RMSF by region:
 
 ---
 
+### Optional Exercise: Compare Your Trajectory with a Peer
+
+**Advanced task (optional):** If you and a classmate analyzed different proteins (or the same protein with different parameters), compare your trajectories systematically.
+
+**Steps:**
+
+1. **Exchange MD output files:**
+   - Share your `prod.xtc`, `prod.tpr`, `prod.edr` with a peer
+   - Receive their files
+
+2. **Perform parallel analysis (see Part 3.75️⃣):**
+   ```bash
+   # Your trajectory
+   gmx rms -f your_traj.xtc -s your.tpr -o rmsd_yours.xvg
+   gmx rmsf -f your_traj.xtc -s your.tpr -o rmsf_yours.xvg -res
+
+   # Peer's trajectory
+   gmx rms -f peer_traj.xtc -s peer.tpr -o rmsd_peer.xvg
+   gmx rmsf -f peer_traj.xtc -s peer.tpr -o rmsf_peer.xvg -res
+   ```
+
+3. **Create comparison plots:**
+   - Plot both RMSD curves on the same figure
+   - Plot both RMSF curves on the same figure
+   - Extract final frames and overlay in PyMOL
+
+4. **Interpret the comparison:**
+   - **If proteins are different:** Compare overall stability, flexibility patterns, RMSF peaks (are they in similar relative positions?)
+   - **If proteins are the same:** Are results reproducible? Do you see similar dynamics? (This validates both analyses!)
+   - **If parameters differ:** Which parameter affects stability/flexibility more?
+
+5. **Discussion questions:**
+   - Do the two proteins/simulations show similar RMSD behavior?
+   - Are flexible regions (high RMSF) in similar structural contexts (loops, termini)?
+   - Can you explain differences based on protein sequence or simulation parameters?
+
+**What you'll learn:**
+- How to systematically compare MD simulations
+- Whether your results are typical or unusual
+- Practice interpreting parameter-dependent vs. robust findings
+- Peer review skills (evaluating another analysis)
+
+**Presentation opportunity:** If you complete this optional exercise, include a "Comparison with Peer" slide in your presentation showing side-by-side RMSD/RMSF plots and your interpretation!
+
+---
+
 ## Part 6️⃣: Biological Interpretation — The Bigger Picture
 
 ### From Numbers to Biology
@@ -1097,6 +2163,13 @@ Your task is to present your findings in a **10-15 minute talk**.
 - Overlay or RMSD matrix: AlphaFold vs. MD final frame
 - Structural comparison: How different are they?
 - Quantitative: alignment RMSD, etc.
+
+**Optional addition (if you compared multiple trajectories):**
+- If you compared two MD simulations (e.g., different force fields, WT vs. mutant, reproducibility check):
+  - Show side-by-side RMSD plots
+  - Show overlaid RMSF plots highlighting differences
+  - Interpret: "Core robust, loops force-field sensitive" or "Mutation increased flexibility at residue X"
+  - See Part 3.75️⃣ for comparison methodology
 
 ---
 
