@@ -10,6 +10,9 @@ Part of: Molecular Modelling and Quantum Chemistry (Master)
 
 [Open this course in LiaScript](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session2b_gromacs_intro.md)
 
+> ![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EU.jpg)
+> *Funded by TUBAFdigital and the European Union (Erasmus+).*
+
 # Session 2B: Introduction to Gromacs — Professional Molecular Dynamics
 
 ## Welcome to the Industry Standard
@@ -3020,7 +3023,18 @@ session3_inputs/
 4. What's the difference between .xtc and .trr trajectories?
 5. If your simulation crashes, what are common reasons?
 
-@include(footer.md)
+---
+
+## Funding
+
+The development of this course material is funded by:
+
+- TUBAFdigital
+- European Union (Erasmus+ National Agency for Higher Education)
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or Erasmus+ National Agency for Higher Education (German Academic Exchange Service). Neither the European Union nor the granting authority can be held responsible for them.
+
+![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EU.jpg)
 
 ---
 

@@ -7,6 +7,9 @@ version: 1.0
 [Open this course in LiaScript](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/BashRPG.md)
 -->
 
+> ![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EU.jpg)
+> *Funded by TUBAFdigital and the European Union (Erasmus+).*
+
 # Pre-Course: Linux Console Basics
 ## Your Gateway to Molecular Modelling
 
@@ -1080,7 +1083,18 @@ The terminal might seem intimidating, but:
 
 **Good luck with your molecular modelling journey!** 🧬🚀
 
-@include(footer.md)
+---
+
+## Funding
+
+The development of this course material is funded by:
+
+- TUBAFdigital
+- European Union (Erasmus+ National Agency for Higher Education)
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or Erasmus+ National Agency for Higher Education (German Academic Exchange Service). Neither the European Union nor the granting authority can be held responsible for them.
+
+![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EU.jpg)
 
 ---
 
