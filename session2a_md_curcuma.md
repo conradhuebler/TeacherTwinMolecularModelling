@@ -8,6 +8,8 @@ Session 2A: Molecular Dynamics with Curcuma
 Part of: Molecular Modelling and Quantum Chemistry (Master)
 -->
 
+[Open this course in LiaScript](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session2a_md_curcuma.md)
+
 # Session 2A: Molecular Dynamics — Understanding Thermostats with Curcuma
 
 ## Part A: From Optimization to Dynamics
@@ -1076,6 +1078,19 @@ plot 'data.txt' u 1:3 w l
 3. Can you predict the RMSD before running a simulation?
 4. How long should MD run for a protein? (100 ps vs 1 ns vs 1 µs?)
 5. What does temperature mean at the atomic scale?
+
+---
+
+## Funding
+
+The development of this course material is funded by:
+
+- TUBAFdigital
+- European Union (Erasmus+ National Agency for Higher Education)
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or Erasmus+ National Agency for Higher Education (German Academic Exchange Service). Neither the European Union nor the granting authority can be held responsible for them.
+
+![Co-funded by the European Union](https://github.com/conradhuebler/TeacherTwinMolecularModelling/raw/main/EU.jpg)
 
 ---
 
