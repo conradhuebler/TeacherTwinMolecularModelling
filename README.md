@@ -30,12 +30,12 @@ By the end of this module, students will be able to:
 ## 📁 Course Structure
 
 ### **Pre-Course: Linux Console Basics** (Self-paced)
-- **File:** `BashRPG.md` (LiaScript)
+- **File:** [`BashRPG.md`](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/BashRPG.md) (LiaScript)
 - **Topics:** File navigation, text editing, pipes, wildcards, grep, find
 - **Deliverable:** Students should be comfortable with terminal before Session 1
 
 ### **Session 1: Geometry Optimization** (Self-paced)
-- **File:** `session1_geometry_optimization.md` (LiaScript)
+- **File:** [`session1_geometry_optimization.md`](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session1_geometry_optimization.md) (LiaScript)
 - **Topics:**
   - Born-Oppenheimer approximation
   - Force fields: UFF vs GFN-FF
@@ -49,7 +49,7 @@ By the end of this module, students will be able to:
 - **Analysis:** RMSD calculation, trajectory visualization (Avogadro)
 
 ### **Session 2A: Molecular Dynamics — Thermostats** (Self-paced)
-- **File:** `session2a_md_curcuma.md` (LiaScript)
+- **File:** [`session2a_md_curcuma.md`](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session2a_md_curcuma.md) (LiaScript)
 - **Topics:**
   - Molecular dynamics theory (NVE, NVT, NPT ensembles)
   - Thermostat concepts: Berendsen vs CSVR
@@ -66,7 +66,7 @@ By the end of this module, students will be able to:
   - Interpret thermostat effects
 
 ### **Session 2B: Introduction to Gromacs** (Self-paced)
-- **File:** `session2b_gromacs_intro.md` (LiaScript)
+- **File:** [`session2b_gromacs_intro.md`](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session2b_gromacs_intro.md) (LiaScript)
 - **Topics:**
   - Gromacs file formats (.mdp, .top, .gro, .tpr, .edr, .xtc)
   - Workflow compiled by Lemkul J. Phys. Chem. B 2024, 128, 39, 9418–9435 (https://pubs.acs.org/doi/full/10.1021/acs.jpcb.4c04901)
@@ -81,7 +81,7 @@ By the end of this module, students will be able to:
   5. Analysis (energy, RMSD, flexibility)
 
 ### **Session 3: AlphaFold vs Molecular Dynamics** (Live + analysis)
-- **File:** `session3_alphafold_and_md.md` (LiaScript)
+- **File:** [`session3_alphafold_and_md.md`](https://liascript.github.io/course/?https://raw.githubusercontent.com/conradhuebler/TeacherTwinMolecularModelling/main/session3_alphafold_and_md.md) (LiaScript)
 - **Topics:**
   - AlphaFold2 predictions
   - Comparison with MD simulations
